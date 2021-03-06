@@ -21,6 +21,23 @@ def split_and_preprocess(df):
 
     df = df[numeric_features].join(pd.get_dummies(df[categorical_features]))
 
+    # Define Treated and Non-treated separation
+    treatment = 'Walc'
+    df['T'] = np.where(df[treatment] >= 4, 1, -1)
+    df['T'].where(df[treatment] > 2, 0, inplace=True) # Careful here, pandas 'where' does the opposite of np.where
+    df = df[df['T'] != -1]
+    df.drop([treatment], inplace=True, axis=1)
+
+
+
+    df.to_csv("After_PP.csv", index=False)
+    # #X = MinMaxScaler().fit_transform(df.drop(['T', 'Y'], axis=1))
+    # #T, y = df['T'], df['Y']
+    # X_treated, X_control = df[df['Walc'] >= 4], df[df['Walc'] <= 2]
+    # y_treated, y_control = y[df['T'] == 1], y[df['T'] == 0]
+    #
+    # return X, X_treated, X_control, y, y_treated, y_control, T
+
     # X = MinMaxScaler().fit_transform(df.drop(['T', 'Y'], axis=1))
     # T, y = df['T'], df['Y']
     # X_treated, X_control = X[df['T'] == 1], X[df['T'] == 0]
@@ -129,8 +146,8 @@ class ATT_Estimator:
 
 
 def main():
-    df_mat = pd.read_csv('student-mat.csv', index_col=0)
-    df_por = pd.read_csv('student-por.csv', index_col=0)
+    df_mat = pd.read_csv('student-mat.csv')
+    df_por = pd.read_csv('student-por.csv')
 
     df_combined = pd.concat([df_mat, df_por])
 
