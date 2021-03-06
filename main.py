@@ -8,6 +8,11 @@ from sklearn.linear_model import LinearRegression, LogisticRegression
 
 
 def split_and_preprocess(df):
+    # Convert all 'yes' 'no' values to 0 and 1
+    print(df.to_string())
+    df.replace('yes', 1, inplace=True)
+    df.replace('no', 0, inplace=True)
+
     # Find and split all columns to categorical and numerical
     categorical_feature_mask = df.dtypes == object
     categorical_features = df.columns[categorical_feature_mask].tolist()
@@ -16,12 +21,12 @@ def split_and_preprocess(df):
 
     df = df[numeric_features].join(pd.get_dummies(df[categorical_features]))
 
-    X = MinMaxScaler().fit_transform(df.drop(['T', 'Y'], axis=1))
-    T, y = df['T'], df['Y']
-    X_treated, X_control = X[df['T'] == 1], X[df['T'] == 0]
-    y_treated, y_control = y[df['T'] == 1], y[df['T'] == 0]
-
-    return X, X_treated, X_control, y, y_treated, y_control, T
+    # X = MinMaxScaler().fit_transform(df.drop(['T', 'Y'], axis=1))
+    # T, y = df['T'], df['Y']
+    # X_treated, X_control = X[df['T'] == 1], X[df['T'] == 0]
+    # y_treated, y_control = y[df['T'] == 1], y[df['T'] == 0]
+    #
+    # return X, X_treated, X_control, y, y_treated, y_control, T
 
 
 def r_square_graph(y_predicted, y, model_type):
@@ -132,6 +137,8 @@ def main():
     print(len(df_mat))
     print(len(df_por))
     print(len(df_combined))
+
+    split_and_preprocess(df_mat)
 
     #
     # estimator1 = ATT_Estimator(df_data1)
