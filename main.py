@@ -118,29 +118,36 @@ class ATT_Estimator:
         treat_plt = plt.hist(self.X_treated[:, col_idx], bins=100, label='Treated')
         control_plt = plt.hist(self.X_control[:, col_idx], bins=100, label='Control')
         plt.legend()
-        plt.xlabel(f'{self.df.columns[col_idx]}');
-        plt.ylabel('number of observations');
+        plt.xlabel(f'{self.df.columns[col_idx]}')
+        plt.ylabel('number of observations')
         plt.show()
 
 
 def main():
-    df_data1 = pd.read_csv('data1.csv', index_col=0)
-    df_data2 = pd.read_csv('data2.csv', index_col=0)
+    df_mat = pd.read_csv('student-mat.csv', index_col=0)
+    df_por = pd.read_csv('student-por.csv', index_col=0)
 
-    estimator1 = ATT_Estimator(df_data1)
-    estimator2 = ATT_Estimator(df_data2)
+    df_combined = pd.concat([df_mat, df_por])
 
-    att1 = estimator1.return_all_att()
-    att2 = estimator2.return_all_att()
+    print(len(df_mat))
+    print(len(df_por))
+    print(len(df_combined))
 
-    att_df = pd.DataFrame(zip(range(1, 6, 1), att1, att2), columns=['Type', 'data1', 'data2'])
-    print(att_df)
-    att_df.to_csv('ATT_results.csv', index=False)
+    #
+    # estimator1 = ATT_Estimator(df_data1)
+    # estimator2 = ATT_Estimator(df_por)
+    #
+    # att1 = estimator1.return_all_att()
+    # att2 = estimator2.return_all_att()
 
-    propensity_df = pd.DataFrame(data=[estimator1.all_propensity_score, estimator2.all_propensity_score],
-                                 index=['data1', 'data2'])
-    print(propensity_df)
-    propensity_df.to_csv('models_propensity.csv', header=False)
+    # att_df = pd.DataFrame(zip(range(1, 6, 1), att1, att2), columns=['Type', 'data1', 'data2'])
+    # print(att_df)
+    # att_df.to_csv('ATT_results.csv', index=False)
+    #
+    # propensity_df = pd.DataFrame(data=[estimator1.all_propensity_score, estimator2.all_propensity_score],
+    #                              index=['data1', 'data2'])
+    # print(propensity_df)
+    # propensity_df.to_csv('models_propensity.csv', header=False)
 
 
 if __name__ == '__main__':
