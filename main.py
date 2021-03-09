@@ -112,6 +112,17 @@ class AverageTreatmentEstimator:
         y_predict_not_treated = model.predict(np.column_stack([self.X_treated, np.zeros(self.X_treated.shape[0])]))
         return np.mean(y_predict_treated - y_predict_not_treated)
 
+    def s_learner_ate(self, model=GaussianProcessRegressor()):
+        model.fit(np.column_stack([self.X, self.T]), self.y)
+
+        # print("S1", model.score(np.column_stack([self.X_treated, np.ones(self.X_treated.shape[0])]), self.y_treated))
+        # print("S2", model.score(np.column_stack([self.X_treated, np.zeros(self.X_treated.shape[0])]), self.y_treated))
+
+        # ATE
+        y_predict_treated = model.predict(np.column_stack([self.X, np.ones(self.X.shape[0])]))
+        y_predict_not_treated = model.predict(np.column_stack([self.X, np.zeros(self.X.shape[0])]))
+        return np.mean(y_predict_treated - y_predict_not_treated)
+
     def t_learner_ate(self):
         treated_model = GaussianProcessRegressor()
         control_model = GaussianProcessRegressor()
@@ -124,10 +135,10 @@ class AverageTreatmentEstimator:
         r_square_graph(pred_treated, self.y_treated, 'GaussianProcessRegressor f(x,1) = y')
         pred_control = control_model.predict(self.X_control)
         r_square_graph(pred_control, self.y_control, 'GaussianProcessRegressor f(x,0) = y')
-        print('t_learner R^2 of treated_model', treated_model.score(self.X_treated, self.y_treated))
-        print('t_learner R^2 of control_model', control_model.score(self.X_control, self.y_control))
+        #print('t_learner R^2 of treated_model', treated_model.score(self.X_treated, self.y_treated))
+        #print('t_learner R^2 of control_model', control_model.score(self.X_control, self.y_control))
 
-        return np.mean(treated_model.predict(self.X_treated) - control_model.predict(self.X_treated))
+        return np.mean(treated_model.predict(self.X) - control_model.predict(self.X))
 
     def matching_att(self):
         model = KNeighborsRegressor(algorithm='auto', metric='euclidean', n_neighbors=1)
@@ -138,7 +149,7 @@ class AverageTreatmentEstimator:
         # model.fit(control_propensity, self.y_control)
         # y_predicted = model.predict(treated_propensity)
 
-        # Train the model all the data
+        # Train the model
         model.fit(self.X_control, self.y_control)
 
         # Predict for treated only
@@ -147,7 +158,11 @@ class AverageTreatmentEstimator:
         return np.mean(self.y_treated - y_predicted)
 
     def return_all_att(self):
-        att = [self.ipw_ate(), self.s_learner_att(), self.t_learner_att(), self.matching_att()]
+        att = [self.ipw_att(), self.s_learner_att(), self.t_learner_ate(), self.matching_att()]
+        return att + [np.average(att)]
+
+    def return_all_ate(self):
+        att = [self.ipw_ate(), self.s_learner_ate(), self.t_learner_ate(), self.matching_att()]
         return att + [np.average(att)]
 
     def print_histogram(self, col_idx):
@@ -175,9 +190,9 @@ def main():
     estimator2 = AverageTreatmentEstimator(df_por)
     estimator3 = AverageTreatmentEstimator(df_combined)
 
-    att1 = estimator1.return_all_att()
-    att2 = estimator2.return_all_att()
-    att3 = estimator3.return_all_att()
+    att1 = estimator1.return_all_ate()
+    att2 = estimator2.return_all_ate()
+    att3 = estimator3.return_all_ate()
 
 
     att_df = pd.DataFrame(zip(range(1, 6, 1), att1, att2, att3), columns=['Type', 'mat', 'por', 'combined'])
