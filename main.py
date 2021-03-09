@@ -9,7 +9,7 @@ from sklearn.linear_model import LinearRegression, LogisticRegression
 
 def split_and_preprocess(df):
     # Convert all 'yes' 'no' values to 0 and 1
-    print(df.to_string())
+    #print(df.to_string())
     df.replace('yes', 1, inplace=True)
     df.replace('no', 0, inplace=True)
 
@@ -22,21 +22,27 @@ def split_and_preprocess(df):
     df = df[numeric_features].join(pd.get_dummies(df[categorical_features]))
 
     # Define Treated and Non-treated separation
-    treatment = 'Walc'
-    df['T'] = np.where(df[treatment] >= 4, 1, -1)
-    df['T'].where(df[treatment] > 2, 0, inplace=True) # Careful here, pandas 'where' does the opposite of np.where
+    # treatment = 'Walc'
+    # df['T'] = np.where(df[treatment] >= 4, 1, -1)
+    # df['T'].where(df[treatment] > 2, 0, inplace=True) # Careful here, pandas 'where' does the opposite of np.where
+    # df = df[df['T'] != -1]
+    # df.drop([treatment], inplace=True, axis=1)
+
+    treatment = ['Dalc', 'Walc']
+    df['T'] = np.where(df[treatment[0]]+df[treatment[1]] >= 8, 1, -1)
+    df['T'].where(df[treatment[0]]+df[treatment[1]] > 4, 0, inplace=True)  # Careful here, pandas 'where' does the opposite of np.where
     df = df[df['T'] != -1]
-    df.drop([treatment], inplace=True, axis=1)
+    df.drop(treatment, inplace=True, axis=1)
 
 
 
-    df.to_csv("After_PP.csv", index=False)
-    # #X = MinMaxScaler().fit_transform(df.drop(['T', 'Y'], axis=1))
-    # #T, y = df['T'], df['Y']
-    # X_treated, X_control = df[df['Walc'] >= 4], df[df['Walc'] <= 2]
-    # y_treated, y_control = y[df['T'] == 1], y[df['T'] == 0]
-    #
-    # return X, X_treated, X_control, y, y_treated, y_control, T
+    #df.to_csv("After_PP.csv", index=False)
+    X = MinMaxScaler().fit_transform(df.drop(['T', 'G1', 'G2', 'G3'], axis=1))
+    T, y = df['T'], df['G3']
+    X_treated, X_control = X[df['T'] == 1], X[df['T'] == 0]
+    y_treated, y_control = y[df['T'] == 1], y[df['T'] == 0]
+
+    return X, X_treated, X_control, y, y_treated, y_control, T
 
     # X = MinMaxScaler().fit_transform(df.drop(['T', 'Y'], axis=1))
     # T, y = df['T'], df['Y']
@@ -56,7 +62,7 @@ def r_square_graph(y_predicted, y, model_type):
     plt.show()
 
 
-class ATT_Estimator:
+class AverageTreatmentEstimator:
     def __init__(self, data):
         self.df = data
         (self.X,
@@ -87,6 +93,14 @@ class ATT_Estimator:
                np.sum(self.y_control * weighted_e_x) / np.sum(weighted_e_x))
         return att
 
+    def ipw_ate(self):
+        # Calc the propensity of the control group (not treated)
+        e_x = self.propensity_score(self.X)
+
+        # Use the formula from class to calculate ATE with IPW
+        ate = np.mean((self.T * self.y)/e_x) - np.mean(((1 - self.T) * self.y) / (1 - e_x))
+        return ate
+
     def s_learner_att(self, model=GaussianProcessRegressor()):
         model.fit(np.column_stack([self.X, self.T]), self.y)
 
@@ -98,7 +112,7 @@ class ATT_Estimator:
         y_predict_not_treated = model.predict(np.column_stack([self.X_treated, np.zeros(self.X_treated.shape[0])]))
         return np.mean(y_predict_treated - y_predict_not_treated)
 
-    def t_learner_att(self):
+    def t_learner_ate(self):
         treated_model = GaussianProcessRegressor()
         control_model = GaussianProcessRegressor()
         # treated_model = LinearRegression()
@@ -108,10 +122,10 @@ class ATT_Estimator:
 
         pred_treated = treated_model.predict(self.X_treated)
         r_square_graph(pred_treated, self.y_treated, 'GaussianProcessRegressor f(x,1) = y')
-        pred_control = control_model.predict(self.X_treated)
-        r_square_graph(pred_control, self.y_treated, 'GaussianProcessRegressor f(x,0) = y')
-        print('R^2 of treated_model', treated_model.score(self.X_treated, self.y_treated))
-        print('R^2 of control_model', control_model.score(self.X_treated, self.y_treated))
+        pred_control = control_model.predict(self.X_control)
+        r_square_graph(pred_control, self.y_control, 'GaussianProcessRegressor f(x,0) = y')
+        print('t_learner R^2 of treated_model', treated_model.score(self.X_treated, self.y_treated))
+        print('t_learner R^2 of control_model', control_model.score(self.X_control, self.y_control))
 
         return np.mean(treated_model.predict(self.X_treated) - control_model.predict(self.X_treated))
 
@@ -133,7 +147,7 @@ class ATT_Estimator:
         return np.mean(self.y_treated - y_predicted)
 
     def return_all_att(self):
-        att = [self.ipw_att(), self.s_learner_att(), self.t_learner_att(), self.matching_att()]
+        att = [self.ipw_ate(), self.s_learner_att(), self.t_learner_att(), self.matching_att()]
         return att + [np.average(att)]
 
     def print_histogram(self, col_idx):
@@ -155,17 +169,19 @@ def main():
     print(len(df_por))
     print(len(df_combined))
 
-    split_and_preprocess(df_mat)
+    #X, X_treated, X_control, y, y_treated, y_control, T = split_and_preprocess(df_mat)
 
-    #
-    # estimator1 = ATT_Estimator(df_data1)
-    # estimator2 = ATT_Estimator(df_por)
-    #
-    # att1 = estimator1.return_all_att()
-    # att2 = estimator2.return_all_att()
+    estimator1 = AverageTreatmentEstimator(df_mat)
+    estimator2 = AverageTreatmentEstimator(df_por)
+    estimator3 = AverageTreatmentEstimator(df_combined)
 
-    # att_df = pd.DataFrame(zip(range(1, 6, 1), att1, att2), columns=['Type', 'data1', 'data2'])
-    # print(att_df)
+    att1 = estimator1.return_all_att()
+    att2 = estimator2.return_all_att()
+    att3 = estimator3.return_all_att()
+
+
+    att_df = pd.DataFrame(zip(range(1, 6, 1), att1, att2, att3), columns=['Type', 'mat', 'por', 'combined'])
+    print(att_df)
     # att_df.to_csv('ATT_results.csv', index=False)
     #
     # propensity_df = pd.DataFrame(data=[estimator1.all_propensity_score, estimator2.all_propensity_score],
