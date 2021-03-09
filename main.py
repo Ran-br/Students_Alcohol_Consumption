@@ -36,13 +36,18 @@ def split_and_preprocess(df):
 
 
 
-    #df.to_csv("After_PP.csv", index=False)
+    df.to_csv("After_PP.csv", index=False)
     X = MinMaxScaler().fit_transform(df.drop(['T', 'G1', 'G2', 'G3'], axis=1))
     T, y = df['T'], df['G3']
     X_treated, X_control = X[df['T'] == 1], X[df['T'] == 0]
     y_treated, y_control = y[df['T'] == 1], y[df['T'] == 0]
 
-    return X, X_treated, X_control, y, y_treated, y_control, T
+    df.groupby('paid')['famsup'].plot(kind='hist', sharex=True, range=(0, 40000), bins=30, alpha=0.75)
+
+    # for column in df.columns.values:
+    #     df.groupby('T')[column].plot(kind='hist', sharex=True, range=(0, 1), bins=30, alpha=0.75)
+
+    return X, X_treated, X_control, y, y_treated, y_control, T, df
 
     # X = MinMaxScaler().fit_transform(df.drop(['T', 'Y'], axis=1))
     # T, y = df['T'], df['Y']
@@ -64,16 +69,28 @@ def r_square_graph(y_predicted, y, model_type):
 
 class AverageTreatmentEstimator:
     def __init__(self, data):
-        self.df = data
         (self.X,
          self.X_treated,
          self.X_control,
          self.y,
          self.y_treated,
          self.y_control,
-         self.T) = split_and_preprocess(data)
+         self.T,
+         self.df) = split_and_preprocess(data)
         self.prop_model = self.calc_propensity()
         self.all_propensity_score = self.propensity_score(self.X)
+
+        temp = np.column_stack([self.X, self.T, self.y])
+        df_temp = pd.DataFrame(temp)
+
+        df_temp[7].hist(by=df_temp[46])
+
+        self.df['famsup'].hist(by=self.df['paid'])
+
+        # for i in range(40):
+        #     self.print_histogram(i)
+        df_temp.groupby(46)[3].plot(kind='hist', sharex=True, range=(0, 40000), bins=30, alpha=0.75)
+        #self.df.groupby('paid')['famsup'].plot(kind='hist', sharex=True, range=(0, 40000), bins=30, alpha=0.75)
 
     def calc_propensity(self):
         model = LogisticRegression(max_iter=1000)
@@ -132,9 +149,9 @@ class AverageTreatmentEstimator:
         control_model.fit(self.X_control, self.y_control)
 
         pred_treated = treated_model.predict(self.X_treated)
-        r_square_graph(pred_treated, self.y_treated, 'GaussianProcessRegressor f(x,1) = y')
+        #r_square_graph(pred_treated, self.y_treated, 'GaussianProcessRegressor f(x,1) = y')
         pred_control = control_model.predict(self.X_control)
-        r_square_graph(pred_control, self.y_control, 'GaussianProcessRegressor f(x,0) = y')
+        #r_square_graph(pred_control, self.y_control, 'GaussianProcessRegressor f(x,0) = y')
         #print('t_learner R^2 of treated_model', treated_model.score(self.X_treated, self.y_treated))
         #print('t_learner R^2 of control_model', control_model.score(self.X_control, self.y_control))
 
@@ -166,8 +183,8 @@ class AverageTreatmentEstimator:
         return att + [np.average(att)]
 
     def print_histogram(self, col_idx):
-        treat_plt = plt.hist(self.X_treated[:, col_idx], bins=100, label='Treated')
-        control_plt = plt.hist(self.X_control[:, col_idx], bins=100, label='Control')
+        treat_plt = plt.hist(self.X_treated[:, col_idx], bins=20, label='Treated')
+        control_plt = plt.hist(self.X_control[:, col_idx], bins=20, label='Control')
         plt.legend()
         plt.xlabel(f'{self.df.columns[col_idx]}')
         plt.ylabel('number of observations')
