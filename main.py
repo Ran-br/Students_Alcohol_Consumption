@@ -22,27 +22,33 @@ def split_and_preprocess(df):
     df = df[numeric_features].join(pd.get_dummies(df[categorical_features]))
 
     # Define Treated and Non-treated separation
-    # treatment = 'Walc'
-    # df['T'] = np.where(df[treatment] >= 4, 1, -1)
-    # df['T'].where(df[treatment] > 2, 0, inplace=True) # Careful here, pandas 'where' does the opposite of np.where
-    # df = df[df['T'] != -1]
-    # df.drop([treatment], inplace=True, axis=1)
-
-    treatment = ['Dalc', 'Walc']
-    df['T'] = np.where(df[treatment[0]]+df[treatment[1]] >= 8, 1, -1)
-    df['T'].where(df[treatment[0]]+df[treatment[1]] > 4, 0, inplace=True)  # Careful here, pandas 'where' does the opposite of np.where
+    treatment = 'Dalc'
+    df['T'] = np.where(df[treatment] >= 2, 1, -1)
+    df['T'].where(df[treatment] > 1, 0, inplace=True) # Careful here, pandas 'where' does the opposite of np.where
     df = df[df['T'] != -1]
-    df.drop(treatment, inplace=True, axis=1)
+    df.drop([treatment], inplace=True, axis=1)
 
+    # treatment = ['Dalc', 'Walc']
+    # df['T'] = np.where(df[treatment[0]]+df[treatment[1]] >= 6, 1, -1)
+    # df['T'].where(df[treatment[0]]+df[treatment[1]] > 2, 0, inplace=True)  # Careful here, pandas 'where' does the opposite of np.where
+    # df = df[df['T'] != -1]
+    # df.drop(treatment, inplace=True, axis=1)
 
+    # Plot overlap (common support) of all features
+    for column in df:
+        fig, ax = plt.subplots()
+        df.groupby('T')[column].plot(kind='hist', sharex=True, bins=30, alpha=0.75)
+        ax.legend(["Control", "Treated"])
+        plt.xlabel(f'{column}')
+        plt.ylabel('number of observations')
+        plt.show()
 
     df.to_csv("After_PP.csv", index=False)
-    X = MinMaxScaler().fit_transform(df.drop(['T', 'G1', 'G2', 'G3'], axis=1))
+    X = MinMaxScaler().fit_transform(df.drop(['T', 'Walc','G1', 'G2', 'G3'], axis=1))
     T, y = df['T'], df['G3']
     X_treated, X_control = X[df['T'] == 1], X[df['T'] == 0]
     y_treated, y_control = y[df['T'] == 1], y[df['T'] == 0]
 
-    df.groupby('paid')['famsup'].plot(kind='hist', sharex=True, range=(0, 40000), bins=30, alpha=0.75)
 
     # for column in df.columns.values:
     #     df.groupby('T')[column].plot(kind='hist', sharex=True, range=(0, 1), bins=30, alpha=0.75)
@@ -80,16 +86,16 @@ class AverageTreatmentEstimator:
         self.prop_model = self.calc_propensity()
         self.all_propensity_score = self.propensity_score(self.X)
 
-        temp = np.column_stack([self.X, self.T, self.y])
-        df_temp = pd.DataFrame(temp)
+        #temp = np.column_stack([self.X, self.T, self.y])
+        #df_temp = pd.DataFrame(temp)
 
-        df_temp[7].hist(by=df_temp[46])
+        #df_temp[7].hist(by=df_temp[46])
 
-        self.df['famsup'].hist(by=self.df['paid'])
+        #self.df['famsup'].hist(by=self.df['paid'])
 
         # for i in range(40):
         #     self.print_histogram(i)
-        df_temp.groupby(46)[3].plot(kind='hist', sharex=True, range=(0, 40000), bins=30, alpha=0.75)
+        #df_temp.groupby(46)[3].plot(kind='hist', sharex=True, range=(0, 40000), bins=30, alpha=0.75)
         #self.df.groupby('paid')['famsup'].plot(kind='hist', sharex=True, range=(0, 40000), bins=30, alpha=0.75)
 
     def calc_propensity(self):
@@ -200,6 +206,31 @@ def main():
     print(len(df_mat))
     print(len(df_por))
     print(len(df_combined))
+
+    # years = [2014, 2014, 2014, 2015, 2015, 2015, 2015]
+    # vehicle_types = ['Truck', 'Truck', 'Car', 'Bike', 'Truck', 'Bike', 'Car']
+    # companies = ["Mercedez", "Tesla", "Tesla", "Yamaha", "Tesla", "BMW", "Ford"]
+    #
+    # df = pd.DataFrame({'year': years,
+    #                    'vehicle_type': vehicle_types,
+    #                    'company': companies
+    #                    })
+
+    #df.groupby('paid')['famsup'].value_counts().unstack().plot.bar()
+   # plt.show()
+    # grouped = df_mat.groupby('paid')
+    # plt.figure()
+    #
+    #
+    # for group in grouped:
+    #     # plt.hist(group[1].famsup)
+    #     treat_plt = plt.hist(group[1].famsup, bins=20, label='Treated')
+    #     #control_plt = plt.hist(group[1].famsup, bins=20, label='Control')
+    # plt.legend()
+    # plt.xlabel(f'{grouped.columns["famsup"]}')
+    # plt.ylabel('number of observations')
+    #
+    # plt.show()
 
     #X, X_treated, X_control, y, y_treated, y_control, T = split_and_preprocess(df_mat)
 
