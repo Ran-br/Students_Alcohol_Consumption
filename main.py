@@ -7,7 +7,7 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.linear_model import LinearRegression, LogisticRegression, TweedieRegressor
 
 
-def split_and_preprocess(df):
+def pre_process(df):
     # Convert all 'yes' 'no' values to 0 and 1
     #print(df.to_string())
     df.replace('yes', 1, inplace=True)
@@ -28,6 +28,9 @@ def split_and_preprocess(df):
     df = df[df['T'] != -1]
     df.drop([treatment], inplace=True, axis=1)
 
+    return df
+
+def split_data(df):
     # treatment = ['Dalc', 'Walc']
     # df['T'] = np.where(df[treatment[0]]+df[treatment[1]] >= 6, 1, -1)
     # df['T'].where(df[treatment[0]]+df[treatment[1]] > 2, 0, inplace=True)  # Careful here, pandas 'where' does the opposite of np.where
@@ -52,7 +55,7 @@ def split_and_preprocess(df):
     X_treated, X_control = X[df['T'] == 1], X[df['T'] == 0]
     y_treated, y_control = y[df['T'] == 1], y[df['T'] == 0]
 
-    return X, X_treated, X_control, y, y_treated, y_control, T, df
+    return X, X_treated, X_control, y, y_treated, y_control, T
 
     # X = MinMaxScaler().fit_transform(df.drop(['T', 'Y'], axis=1))
     # T, y = df['T'], df['Y']
@@ -74,17 +77,27 @@ def r_square_graph(y_predicted, y, model_type):
 
 class AverageTreatmentEstimator:
     def __init__(self, data):
+        self.df = pre_process(data)
         (self.X,
          self.X_treated,
          self.X_control,
          self.y,
          self.y_treated,
          self.y_control,
-         self.T,
-         self.df) = split_and_preprocess(data)
+         self.T) = split_data(self.df)
         self.prop_model = self.calc_propensity()
         self.all_propensity_score = self.propensity_score(self.X)
 
+        # Trim common support (overlap)
+        (self.X_trimmed,
+         self.X_treated_trimmed,
+         self.X_control_trimmed,
+         self.y_trimmed,
+         self.y_treated_trimmed,
+         self.y_control_trimmed,
+         self.T_trimmed) = split_data(self.trim_common_support(self.df))
+
+        print("Num after trim ", len(self.X_trimmed))
         #temp = np.column_stack([self.X, self.T, self.y])
         #df_temp = pd.DataFrame(temp)
 
@@ -104,6 +117,22 @@ class AverageTreatmentEstimator:
 
     def propensity_score(self, X_values):
         return self.prop_model.predict_proba(X_values)[:, -1]
+
+    def trim_common_support(self, data):
+
+        data['propensity'] = self.propensity_score(self.X)
+        # Save results to a file for easier read
+        #data.to_csv("with_propensity.csv", index=False)
+
+        group_min_max = (data.groupby('T').propensity.agg(min_propensity=np.min, max_propensity=np.max))
+
+        # Compute boundaries of common support between the two propensity score distributions
+        min_common_support = np.max(group_min_max.min_propensity)
+        max_common_support = np.min(group_min_max.max_propensity)
+
+        common_support_filter = (data.propensity >= min_common_support) & (data.propensity <= max_common_support)
+
+        return data[common_support_filter]
 
     def ipw_att(self):
         # Calc the propensity of the control group (not treated)
@@ -203,6 +232,10 @@ class AverageTreatmentEstimator:
         plt.ylabel('number of observations')
         plt.show()
 
+    def save_df(self):
+        # Save results to a file for easier read
+        self.df.to_csv("After_PP1.csv", index=False)
+
 
 def main():
     df_mat = pd.read_csv('student-mat.csv')
@@ -244,6 +277,10 @@ def main():
     estimator1 = AverageTreatmentEstimator(df_mat)
     estimator2 = AverageTreatmentEstimator(df_por)
     estimator3 = AverageTreatmentEstimator(df_combined)
+
+    estimator1.save_df()
+    estimator2.save_df()
+    estimator3.save_df()
 
     att1 = estimator1.return_all_ate()
     att2 = estimator2.return_all_ate()
