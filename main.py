@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.preprocessing import MinMaxScaler
-from sklearn.linear_model import LinearRegression, LogisticRegression
+from sklearn.linear_model import LinearRegression, LogisticRegression, TweedieRegressor
 
 
 def split_and_preprocess(df):
@@ -35,23 +35,22 @@ def split_and_preprocess(df):
     # df.drop(treatment, inplace=True, axis=1)
 
     # Plot overlap (common support) of all features
-    for column in df:
-        fig, ax = plt.subplots()
-        df.groupby('T')[column].plot(kind='hist', sharex=True, bins=30, alpha=0.75)
-        ax.legend(["Control", "Treated"])
-        plt.xlabel(f'{column}')
-        plt.ylabel('number of observations')
-        plt.show()
+    # for column in df:
+    #     fig, ax = plt.subplots()
+    #     df.groupby('T')[column].plot(kind='hist', sharex=True, bins=30, alpha=0.75)
+    #     ax.legend(["Control", "Treated"])
+    #     plt.xlabel(f'{column}')
+    #     plt.ylabel('number of observations')
+    #     plt.show()
 
-    df.to_csv("After_PP.csv", index=False)
+    # Save results to a file for easier read
+    # df.to_csv("After_PP.csv", index=False)
+
+    # Normilize the data and store separate it for easier work a head
     X = MinMaxScaler().fit_transform(df.drop(['T', 'Walc','G1', 'G2', 'G3'], axis=1))
     T, y = df['T'], df['G3']
     X_treated, X_control = X[df['T'] == 1], X[df['T'] == 0]
     y_treated, y_control = y[df['T'] == 1], y[df['T'] == 0]
-
-
-    # for column in df.columns.values:
-    #     df.groupby('T')[column].plot(kind='hist', sharex=True, range=(0, 1), bins=30, alpha=0.75)
 
     return X, X_treated, X_control, y, y_treated, y_control, T, df
 
@@ -99,7 +98,7 @@ class AverageTreatmentEstimator:
         #self.df.groupby('paid')['famsup'].plot(kind='hist', sharex=True, range=(0, 40000), bins=30, alpha=0.75)
 
     def calc_propensity(self):
-        model = LogisticRegression(max_iter=1000)
+        model = LogisticRegression() # We can add C=1e6 to cancel default sklearn regularization
         model.fit(self.X, self.T)
         return model
 
@@ -180,12 +179,20 @@ class AverageTreatmentEstimator:
 
         return np.mean(self.y_treated - y_predicted)
 
+    # Use doubly robust estimator to try and decrease the possible error of estimation
+    def doubly_robust(self):
+        ps = self.propensity_score(self.X)
+        mu0 = GaussianProcessRegressor().fit(self.X_control, self.y_control).predict(self.X)
+        mu1 = GaussianProcessRegressor().fit(self.X_treated, self.y_treated).predict(self.X)
+        return (np.mean(self.T * (self.y - mu1) / ps + mu1) -
+                np.mean((1 - self.T) * (self.y - mu0) / (1 - ps) + mu0))
+
     def return_all_att(self):
-        att = [self.ipw_att(), self.s_learner_att(), self.t_learner_ate(), self.matching_att()]
+        att = [self.ipw_att(), self.s_learner_att(), self.t_learner_ate(), self.matching_att(), self.doubly_robust()]
         return att + [np.average(att)]
 
     def return_all_ate(self):
-        att = [self.ipw_ate(), self.s_learner_ate(), self.t_learner_ate(), self.matching_att()]
+        att = [self.ipw_ate(), self.s_learner_ate(), self.t_learner_ate(), self.matching_att(), self.doubly_robust()]
         return att + [np.average(att)]
 
     def print_histogram(self, col_idx):
@@ -243,7 +250,7 @@ def main():
     att3 = estimator3.return_all_ate()
 
 
-    att_df = pd.DataFrame(zip(range(1, 6, 1), att1, att2, att3), columns=['Type', 'mat', 'por', 'combined'])
+    att_df = pd.DataFrame(zip(range(1, 7, 1), att1, att2, att3), columns=['Type', 'mat', 'por', 'combined'])
     print(att_df)
     # att_df.to_csv('ATT_results.csv', index=False)
     #
