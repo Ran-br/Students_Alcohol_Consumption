@@ -22,20 +22,17 @@ def pre_process(df):
     df = df[numeric_features].join(pd.get_dummies(df[categorical_features]))
 
     # Define Treated and Non-treated separation
-    treatment = 'Dalc'
-    df['T'] = np.where(df[treatment] >= 2, 1, -1)
-    df['T'].where(df[treatment] > 1, 0, inplace=True) # Careful here, pandas 'where' does the opposite of np.where
-    df = df[df['T'] != -1]
-    df.drop([treatment], inplace=True, axis=1)
-
-    return df
-
-def split_data(df):
-    # treatment = ['Dalc', 'Walc']
-    # df['T'] = np.where(df[treatment[0]]+df[treatment[1]] >= 6, 1, -1)
-    # df['T'].where(df[treatment[0]]+df[treatment[1]] > 2, 0, inplace=True)  # Careful here, pandas 'where' does the opposite of np.where
+    # treatment = 'Dalc'
+    # df['T'] = np.where(df[treatment] >= 2, 1, -1)
+    # df['T'].where(df[treatment] > 1, 0, inplace=True) # Careful here, pandas 'where' does the opposite of np.where
     # df = df[df['T'] != -1]
-    # df.drop(treatment, inplace=True, axis=1)
+    # df.drop([treatment], inplace=True, axis=1)
+
+    treatment = ['Dalc', 'Walc']
+    df['T'] = np.where(df[treatment[0]]+df[treatment[1]] >= 6, 1, -1)
+    df['T'].where(df[treatment[0]]+df[treatment[1]] > 2, 0, inplace=True)  # Careful here, pandas 'where' does the opposite of np.where
+    df = df[df['T'] != -1]
+    df.drop(treatment, inplace=True, axis=1)
 
     # Plot overlap (common support) of all features
     # for column in df:
@@ -49,11 +46,15 @@ def split_data(df):
     # Save results to a file for easier read
     # df.to_csv("After_PP.csv", index=False)
 
+    return df
+
+def split_data(df):
+
     # Normilize the data and store separate it for easier work a head
     if 'propensity' in df.columns:
         df = df.drop(['propensity'], inplace=False, axis=1)
 
-    X = MinMaxScaler().fit_transform(df.drop(['T', 'Walc','G1', 'G2', 'G3'], axis=1))
+    X = MinMaxScaler().fit_transform(df.drop(['T', 'G1', 'G2', 'G3'], axis=1))
     T, y = df['T'], df['G3']
     X_treated, X_control = X[df['T'] == 1], X[df['T'] == 0]
     y_treated, y_control = y[df['T'] == 1], y[df['T'] == 0]
@@ -107,6 +108,7 @@ class AverageTreatmentEstimator:
 
         fig, ax = plt.subplots()
         self.df.groupby('T')["propensity"].plot(kind='hist', sharex=True, bins=30, alpha=0.5)
+        ax.set_xlim([0, 1])
         ax.set_title("Original")
         ax.legend(["Control", "Treated"])
         plt.xlabel('propensity')
@@ -122,13 +124,13 @@ class AverageTreatmentEstimator:
         plt.ylabel('number of observations')
         plt.show()
 
-        # (self.X,
-        #  self.X_treated,
-        #  self.X_control,
-        #  self.y,
-        #  self.y_treated,
-        #  self.y_control,
-        #  self.T) = split_data(self.trim_common_support(self.df))
+        (self.X,
+         self.X_treated,
+         self.X_control,
+         self.y,
+         self.y_treated,
+         self.y_control,
+         self.T) = split_data(self.trim_common_support(self.df))
 
         # temp = np.column_stack([self.X, self.T, self.y])
         # df_temp = pd.DataFrame(temp)
