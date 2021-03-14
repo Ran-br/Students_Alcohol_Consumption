@@ -241,7 +241,7 @@ def main():
     df_mat = pd.read_csv('student-mat.csv')
     df_por = pd.read_csv('student-por.csv')
 
-    df_combined = pd.concat([df_mat, df_por])
+    df_combined = pd.concat([df_mat, df_por], ignore_index=True)
 
     print(len(df_mat))
     print(len(df_por))
