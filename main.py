@@ -50,6 +50,9 @@ def split_data(df):
     # df.to_csv("After_PP.csv", index=False)
 
     # Normilize the data and store separate it for easier work a head
+    if 'propensity' in df.columns:
+        df = df.drop(['propensity'], inplace=False, axis=1)
+
     X = MinMaxScaler().fit_transform(df.drop(['T', 'Walc','G1', 'G2', 'G3'], axis=1))
     T, y = df['T'], df['G3']
     X_treated, X_control = X[df['T'] == 1], X[df['T'] == 0]
@@ -98,8 +101,37 @@ class AverageTreatmentEstimator:
          self.T_trimmed) = split_data(self.trim_common_support(self.df))
 
         print("Num after trim ", len(self.X_trimmed))
-        #temp = np.column_stack([self.X, self.T, self.y])
-        #df_temp = pd.DataFrame(temp)
+
+        # Plot overlap (common support) of all features
+        # for column in df:
+
+        fig, ax = plt.subplots()
+        self.df.groupby('T')["propensity"].plot(kind='hist', sharex=True, bins=30, alpha=0.5)
+        ax.set_title("Original")
+        ax.legend(["Control", "Treated"])
+        plt.xlabel('propensity')
+        plt.ylabel('number of observations')
+        plt.show()
+
+        fig, ax = plt.subplots()
+        ax.set_xlim([0, 1])
+        self.trim_common_support(self.df).groupby('T')["propensity"].plot(kind='hist', sharex=True, bins=30, alpha=0.5)
+        ax.set_title("After Trimming")
+        ax.legend(["Control", "Treated"])
+        plt.xlabel('propensity')
+        plt.ylabel('number of observations')
+        plt.show()
+
+        # (self.X,
+        #  self.X_treated,
+        #  self.X_control,
+        #  self.y,
+        #  self.y_treated,
+        #  self.y_control,
+        #  self.T) = split_data(self.trim_common_support(self.df))
+
+        # temp = np.column_stack([self.X, self.T, self.y])
+        # df_temp = pd.DataFrame(temp)
 
         #df_temp[7].hist(by=df_temp[46])
 
