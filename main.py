@@ -12,6 +12,13 @@ g_count = 0
 files = ['mat', 'por', 'comb']
 
 def pre_process(df):
+    plt.figure(figsize=(10, 9))
+    plt.title("Correlation Matrix")
+    sns.heatmap(df.corr(), annot=True, fmt=".2f", cbar=True, cmap="YlGnBu")
+    plt.xticks(rotation=90)
+    plt.yticks(rotation=0)
+    plt.show()
+
     # Convert all 'yes' 'no' values to 0 and 1
     #print(df.to_string())
     df.replace('yes', 1, inplace=True)
@@ -70,77 +77,86 @@ def pre_process(df):
     # plt.xlabel('Age')
     # plt.show()
 
+    # ####################################################################
+    # ######################   Grades and Dalc+Walc    ###################
+    # ####################################################################
+    #
+    # df['Walc+Dalc'] = df['Walc']+df['Dalc']
+    # groupedvaluesDalc_Walc = df.groupby('Walc+Dalc').mean().reset_index()
+    #
+    # groupedvalues_len = df.groupby('Walc+Dalc').size().reset_index(name='counts')
+    # g = sns.barplot(x='Walc+Dalc', y='G3', data=groupedvaluesDalc_Walc)
+    #
+    # pal = sns.color_palette("Reds_d", len(groupedvaluesDalc_Walc))
+    # rank = groupedvalues_len["counts"].argsort().argsort()
+    # g = sns.barplot(x='Walc+Dalc', y='G3', data=groupedvaluesDalc_Walc, palette=np.array(pal[::-1])[rank])
+    #
+    # for index, row, row_len in zip(range(0, np.max(df['Walc+Dalc']) + 1 - np.min(df['Walc+Dalc'])),
+    #                                groupedvaluesDalc_Walc.iterrows(),
+    #                                groupedvalues_len.iterrows()):
+    #     g.text(index, 2, f'Count:\n{row_len[1].counts}', color='black', ha="center")
+    # plt.show()
+    # df = df.drop("Walc+Dalc", inplace=False, axis=1)
+    #
+    # ####################################################################
+    # #######################   Grades and Dalc    #######################
+    # ####################################################################
+    #
+    # groupedvalues = df.groupby('Dalc').mean().reset_index()
+    # groupedvalues_len = df.groupby('Dalc').size().reset_index(name='counts')
+    # g = sns.barplot(x='Dalc', y='G3', data=groupedvalues)
+    #
+    # pal = sns.color_palette("Blues_d", len(groupedvalues))
+    # rank = groupedvalues_len["counts"].argsort().argsort()
+    # g = sns.barplot(x='Dalc', y='G3', data=groupedvalues, palette=np.array(pal[::-1])[rank])
+    #
+    # for index, row, row_len in zip(range(0, np.max(df.Dalc) + 1 - np.min(df.Dalc)),
+    #                                groupedvalues.iterrows(),
+    #                                groupedvalues_len.iterrows()):
+    #     g.text(index, 1, f'Count:\n{row_len[1].counts}', color='black', ha="center")
+    # plt.show()
+    #
+    # ####################################################################
+    # #######################   Grades and Walc    #######################
+    # ####################################################################
+    #
+    # groupedvalues = df.groupby('Walc').mean().reset_index()
+    # groupedvalues_len = df.groupby('Walc').size().reset_index(name='counts')
+    # g = sns.barplot(x='Walc', y='G3', data=groupedvalues)
+    #
+    # pal = sns.color_palette("Oranges_d", len(groupedvalues))
+    # rank = groupedvalues_len["counts"].argsort().argsort()
+    # g = sns.barplot(x='Walc', y='G3', data=groupedvalues, palette=np.array(pal[::-1])[rank])
+    # g.set(xlabel='Guyhomo', ylabel='common ylabel')
+    # g.set_title("guygever")
+    #
+    # for index, row, row_len in zip(range(0, np.max(df.Walc) + 1 - np.min(df.Walc)),
+    #                                groupedvalues.iterrows(),
+    #                                groupedvalues_len.iterrows()):
+    #     g.text(index, 1, f'Count:\n{row_len[1].counts}', color='black', ha="center")
+    # plt.show()
+    #
+    # ####################################################################
+    # #######################   Grades and Ages    #######################
+    # ####################################################################
+    #
+    #
+    # groupedvalues = df.groupby('age').mean().reset_index()
+    # groupedvalues_len = df.groupby('age').size().reset_index(name='counts')
+    # g = sns.barplot(x='age', y='G3', data=groupedvalues)
+    #
+    # pal = sns.color_palette("Greens_d", len(groupedvalues))
+    # rank = groupedvalues_len["counts"].argsort().argsort()
+    # g = sns.barplot(x='age', y='G3', data=groupedvalues, palette=np.array(pal[::-1])[rank])
+    #
+    # for index, row, row_len in zip(range(0, np.max(df.age)+1 - np.min(df.age)),
+    #                       groupedvalues.iterrows(),
+    #                       groupedvalues_len.iterrows()):
+    #     g.text(index, 1, f'Count:\n{row_len[1].counts}', color='black', ha="center")
+    # plt.show()
 
     ####################################################################
-    df['Walc+Dalc'] = df['Walc']+df['Dalc']
-    groupedvaluesDalc_Walc = df.groupby('Walc+Dalc').mean().reset_index()
-
-    groupedvalues_len = df.groupby('Walc+Dalc').size().reset_index(name='counts')
-    g = sns.barplot(x='Walc+Dalc', y='G3', data=groupedvaluesDalc_Walc)
-
-    pal = sns.color_palette("Reds_d", len(groupedvaluesDalc_Walc))
-    rank = groupedvalues_len["counts"].argsort().argsort()
-    g = sns.barplot(x='Walc+Dalc', y='G3', data=groupedvaluesDalc_Walc, palette=np.array(pal[::-1])[rank])
-
-    for index, row, row_len in zip(range(0, np.max(df['Walc+Dalc']) + 1 - np.min(df['Walc+Dalc'])),
-                                   groupedvaluesDalc_Walc.iterrows(),
-                                   groupedvalues_len.iterrows()):
-        g.text(index, 2, f'Count:\n{row_len[1].counts}', color='black', ha="center")
-    plt.show()
-    df = df.drop("Walc+Dalc", inplace=False, axis=1)
-
     ####################################################################
-
-
-    groupedvalues = df.groupby('Dalc').mean().reset_index()
-    groupedvalues_len = df.groupby('Dalc').size().reset_index(name='counts')
-    g = sns.barplot(x='Dalc', y='G3', data=groupedvalues)
-
-    pal = sns.color_palette("Blues_d", len(groupedvalues))
-    rank = groupedvalues_len["counts"].argsort().argsort()
-    g = sns.barplot(x='Dalc', y='G3', data=groupedvalues, palette=np.array(pal[::-1])[rank])
-
-    for index, row, row_len in zip(range(0, np.max(df.Dalc) + 1 - np.min(df.Dalc)),
-                                   groupedvalues.iterrows(),
-                                   groupedvalues_len.iterrows()):
-        g.text(index, 1, f'Count:\n{row_len[1].counts}', color='black', ha="center")
-    plt.show()
-    ####################################################################
-
-    groupedvalues = df.groupby('Walc').mean().reset_index()
-    groupedvalues_len = df.groupby('Walc').size().reset_index(name='counts')
-    g = sns.barplot(x='Walc', y='G3', data=groupedvalues)
-
-    pal = sns.color_palette("Oranges_d", len(groupedvalues))
-    rank = groupedvalues_len["counts"].argsort().argsort()
-    g = sns.barplot(x='Walc', y='G3', data=groupedvalues, palette=np.array(pal[::-1])[rank])
-    g.set(xlabel='Guyhomo', ylabel='common ylabel')
-    g.set_title("guygever")
-
-    for index, row, row_len in zip(range(0, np.max(df.Walc) + 1 - np.min(df.Walc)),
-                                   groupedvalues.iterrows(),
-                                   groupedvalues_len.iterrows()):
-        g.text(index, 1, f'Count:\n{row_len[1].counts}', color='black', ha="center")
-    plt.show()
-    ####################################################################
-
-
-    groupedvalues = df.groupby('age').mean().reset_index()
-    groupedvalues_len = df.groupby('age').size().reset_index(name='counts')
-    g = sns.barplot(x='age', y='G3', data=groupedvalues)
-
-    pal = sns.color_palette("Greens_d", len(groupedvalues))
-    rank = groupedvalues_len["counts"].argsort().argsort()
-    g = sns.barplot(x='age', y='G3', data=groupedvalues, palette=np.array(pal[::-1])[rank])
-
-    for index, row, row_len in zip(range(0, np.max(df.age)+1 - np.min(df.age)),
-                          groupedvalues.iterrows(),
-                          groupedvalues_len.iterrows()):
-        g.text(index, 1, f'Count:\n{row_len[1].counts}', color='black', ha="center")
-    plt.show()
-
-
-
 
     g_count += 1
     # # Average grade
@@ -332,16 +348,22 @@ class AverageTreatmentEstimator:
     def s_learner_ate(self, model=Ridge()):
         model.fit(np.column_stack([self.X, self.T]), self.y)
 
-        cdf = pd.DataFrame(model.coef_, self.df.drop(['propensity', 'G1', 'G2', 'G3'], axis=1).columns, columns=['Coefficients'])
-        #print(sorted(cdf.to_dict().values(), key=lambda x: np.absolute(x)))
-        print()
-        print(cdf.assign(sortval=np.abs(cdf.Coefficients)).sort_values('sortval', ascending=False).drop('sortval', 1))
+        ####################################################################
+        #######################   Coefficiants    #######################
+        ####################################################################
+        # cdf = pd.DataFrame(model.coef_, self.df.drop(['propensity', 'G1', 'G2', 'G3'], axis=1).columns, columns=['Coefficients'])
+        # #print(sorted(cdf.to_dict().values(), key=lambda x: np.absolute(x)))
+        # print()
+        # print(cdf.assign(sortval=np.abs(cdf.Coefficients)).sort_values('sortval', ascending=False).drop('sortval', 1))
+        #
+        # cdf.plot(kind='barh', figsize=(9, 7))
+        # plt.title('Ridge model, small regularization')
+        # plt.axvline(x=0, color='.5')
+        # plt.subplots_adjust(left=.3)
+        # plt.show()
+        #
 
-        cdf.plot(kind='barh', figsize=(9, 7))
-        plt.title('Ridge model, small regularization')
-        plt.axvline(x=0, color='.5')
-        plt.subplots_adjust(left=.3)
-        plt.show()
+
         # print("S1", model.score(np.column_stack([self.X_treated, np.ones(self.X_treated.shape[0])]), self.y_treated))
         # print("S2", model.score(np.column_stack([self.X_treated, np.zeros(self.X_treated.shape[0])]), self.y_treated))
 
