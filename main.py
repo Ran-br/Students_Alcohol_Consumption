@@ -6,6 +6,7 @@ from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.linear_model import LinearRegression, LogisticRegression, TweedieRegressor
+from sklearn.linear_model import Ridge
 
 g_count = 0
 files = ['mat', 'por', 'comb']
@@ -328,9 +329,19 @@ class AverageTreatmentEstimator:
         y_predict_not_treated = model.predict(np.column_stack([self.X_treated, np.zeros(self.X_treated.shape[0])]))
         return np.mean(y_predict_treated - y_predict_not_treated)
 
-    def s_learner_ate(self, model=GaussianProcessRegressor()):
+    def s_learner_ate(self, model=Ridge()):
         model.fit(np.column_stack([self.X, self.T]), self.y)
 
+        cdf = pd.DataFrame(model.coef_, self.df.drop(['propensity', 'G1', 'G2', 'G3'], axis=1).columns, columns=['Coefficients'])
+        #print(sorted(cdf.to_dict().values(), key=lambda x: np.absolute(x)))
+        print()
+        print(cdf.assign(sortval=np.abs(cdf.Coefficients)).sort_values('sortval', ascending=False).drop('sortval', 1))
+
+        cdf.plot(kind='barh', figsize=(9, 7))
+        plt.title('Ridge model, small regularization')
+        plt.axvline(x=0, color='.5')
+        plt.subplots_adjust(left=.3)
+        plt.show()
         # print("S1", model.score(np.column_stack([self.X_treated, np.ones(self.X_treated.shape[0])]), self.y_treated))
         # print("S2", model.score(np.column_stack([self.X_treated, np.zeros(self.X_treated.shape[0])]), self.y_treated))
 
