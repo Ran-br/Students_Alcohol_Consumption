@@ -12,12 +12,73 @@ g_count = 0
 files = ['mat', 'por', 'comb']
 
 def pre_process(df):
-    plt.figure(figsize=(10, 9))
-    plt.title("Correlation Matrix")
-    sns.heatmap(df.corr(), annot=True, fmt=".2f", cbar=True, cmap="YlGnBu")
-    plt.xticks(rotation=90)
-    plt.yticks(rotation=0)
+    # ####################################################################
+    # ######################   Correlation Matrix    ###################
+    # ####################################################################
+    # plt.figure(figsize=(10, 9))
+    # plt.title("Correlation Matrix")
+    # sns.heatmap(df.corr(), annot=True, fmt=".2f", cbar=True, cmap="YlGnBu")
+    # plt.xticks(rotation=90)
+    # plt.yticks(rotation=0)
+    # plt.show()
+
+    # # ####################################################################
+    # # ##########################   Ages    ###############################
+    # # ####################################################################
+    # fig = plt.figure(figsize=(9, 4))
+    # ax1 = fig.add_subplot(121)
+    # sns.countplot(x="age", palette="mako", data=df, ax=ax1)
+    # plt.title("Age Histogram")
+    #
+    # ax2 = fig.add_subplot(122)
+    # sns.distplot(df["age"], color="green", norm_hist=True, ax=ax2)
+    # plt.title("Age Distribution")
+    # plt.show()
+    #
+    # # ####################################################################
+    # # ##########################   Grades    #############################
+    # # ####################################################################
+    # fig = plt.figure(figsize=(9, 4))
+    # ax1 = fig.add_subplot(121)
+    # sns.countplot(x="G3", palette="mako", data=df, ax=ax1)
+    # plt.title("Final Grade Histogram")
+    #
+    # ax2 = fig.add_subplot(122)
+    # sns.distplot(df["G3"], color="green", ax=ax2)
+    # plt.title("Final Grade Distribution")
+    # plt.show()
+
+    # ####################################################################
+    # ##########################   Walc / Dalc    ########################
+    # ####################################################################
+    fig = plt.figure(figsize=(9, 4))
+    ax1 = fig.add_subplot(121)
+    sns.countplot(x="Walc", palette="mako", data=df, ax=ax1)
+    plt.title("Walc Histogram")
+
+    ax2 = fig.add_subplot(122)
+    sns.countplot(x="Dalc", palette="mako", data=df, ax=ax2)
+    #sns.distplot(df["G3"], color="green", ax=ax2)
+    plt.title("Dalc Histogram")
     plt.show()
+
+    ####################################################################
+    ########################   Walc + Dalc    ##########################
+    ####################################################################
+    df['Walc+Dalc'] = df['Walc'] + df['Dalc']
+    fig = plt.figure(figsize=(9, 4))
+    ax1 = fig.add_subplot(121)
+    sns.countplot(x="Walc+Dalc", palette="mako", data=df, ax=ax1)
+    plt.title("Walc+Dalc Histogram")
+
+    ax2 = fig.add_subplot(122)
+    sns.distplot(df["Walc+Dalc"], color="green", ax=ax2)
+    plt.title("Walc+Dalc Distribution")
+    plt.show()
+    df = df.drop("Walc+Dalc", inplace=False, axis=1)
+
+    #####################################################################
+    #####################################################################
 
     # Convert all 'yes' 'no' values to 0 and 1
     #print(df.to_string())
