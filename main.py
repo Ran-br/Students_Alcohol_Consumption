@@ -1,11 +1,14 @@
 import numpy as np
 import pandas as pd
+import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.linear_model import LinearRegression, LogisticRegression, TweedieRegressor
 
+g_count = 0
+files = ['mat', 'por', 'comb']
 
 def pre_process(df):
     # Convert all 'yes' 'no' values to 0 and 1
@@ -27,6 +30,126 @@ def pre_process(df):
     # df['T'].where(df[treatment] > 1, 0, inplace=True) # Careful here, pandas 'where' does the opposite of np.where
     # df = df[df['T'] != -1]
     # df.drop([treatment], inplace=True, axis=1)
+
+    global g_count
+
+    # # Average grade
+    # list1 = []
+    # for i in range(1, 6):
+    #     list1.append(sum(df[df.Dalc == i].G3) / float(len(df[df.Dalc == i])))
+    # ax = sns.barplot(x=[1, 2, 3, 4, 5], y=list1)
+    # ax.set_title(files[g_count])
+    # plt.ylabel('Average Grades of students')
+    # plt.xlabel('Weekly alcohol consumption')
+    # plt.show()
+    #
+    # # Average grade
+    # list2 = []
+    # for i in range(2, 11):
+    #     list2.append(sum(df[df.Dalc + df.Walc == i].G3) / float(len(df[df.Dalc + df.Walc == i])))
+    # ax = sns.barplot(x=[2, 3, 4, 5, 6, 7, 8, 9, 10], y=list2)
+    # ax.set_title(files[g_count])
+    # plt.ylabel('Average Grades of students')
+    # plt.xlabel('Total alcohol consumption')
+    # plt.show()
+
+                # # Average grade
+                # ages_range = range(np.min(df.age), np.max(df.age)+1)
+                # age_avg = []
+                # age_count = []
+                # for i in ages_range:
+                #     age_avg.append(sum(df[df.age == i].G3) / float(len(df[df.age == i])))
+                #     age_count.append(len(df[df.age == i]))
+                # ax = sns.barplot(x=list(ages_range), y=age_avg)
+                # for age, count, avg in zip(ages_range, age_count, age_avg):
+                #     ax.text(age, avg, count, color='black', ha="center")
+    #
+    # ax.set_title(files[g_count])
+    # plt.ylabel('Average Grades of students')
+    # plt.xlabel('Age')
+    # plt.show()
+
+
+    ####################################################################
+    df['Walc+Dalc'] = df['Walc']+df['Dalc']
+    groupedvaluesDalc_Walc = df.groupby('Walc+Dalc').mean().reset_index()
+
+    groupedvalues_len = df.groupby('Walc+Dalc').size().reset_index(name='counts')
+    g = sns.barplot(x='Walc+Dalc', y='G3', data=groupedvaluesDalc_Walc)
+
+    pal = sns.color_palette("Reds_d", len(groupedvaluesDalc_Walc))
+    rank = groupedvalues_len["counts"].argsort().argsort()
+    g = sns.barplot(x='Walc+Dalc', y='G3', data=groupedvaluesDalc_Walc, palette=np.array(pal[::-1])[rank])
+
+    for index, row, row_len in zip(range(0, np.max(df['Walc+Dalc']) + 1 - np.min(df['Walc+Dalc'])),
+                                   groupedvaluesDalc_Walc.iterrows(),
+                                   groupedvalues_len.iterrows()):
+        g.text(index, 2, f'Count:\n{row_len[1].counts}', color='black', ha="center")
+    plt.show()
+    df = df.drop("Walc+Dalc", inplace=False, axis=1)
+
+    ####################################################################
+
+
+    groupedvalues = df.groupby('Dalc').mean().reset_index()
+    groupedvalues_len = df.groupby('Dalc').size().reset_index(name='counts')
+    g = sns.barplot(x='Dalc', y='G3', data=groupedvalues)
+
+    pal = sns.color_palette("Blues_d", len(groupedvalues))
+    rank = groupedvalues_len["counts"].argsort().argsort()
+    g = sns.barplot(x='Dalc', y='G3', data=groupedvalues, palette=np.array(pal[::-1])[rank])
+
+    for index, row, row_len in zip(range(0, np.max(df.Dalc) + 1 - np.min(df.Dalc)),
+                                   groupedvalues.iterrows(),
+                                   groupedvalues_len.iterrows()):
+        g.text(index, 1, f'Count:\n{row_len[1].counts}', color='black', ha="center")
+    plt.show()
+    ####################################################################
+
+    groupedvalues = df.groupby('Walc').mean().reset_index()
+    groupedvalues_len = df.groupby('Walc').size().reset_index(name='counts')
+    g = sns.barplot(x='Walc', y='G3', data=groupedvalues)
+
+    pal = sns.color_palette("Oranges_d", len(groupedvalues))
+    rank = groupedvalues_len["counts"].argsort().argsort()
+    g = sns.barplot(x='Walc', y='G3', data=groupedvalues, palette=np.array(pal[::-1])[rank])
+    g.set(xlabel='Guyhomo', ylabel='common ylabel')
+    g.set_title("guygever")
+
+    for index, row, row_len in zip(range(0, np.max(df.Walc) + 1 - np.min(df.Walc)),
+                                   groupedvalues.iterrows(),
+                                   groupedvalues_len.iterrows()):
+        g.text(index, 1, f'Count:\n{row_len[1].counts}', color='black', ha="center")
+    plt.show()
+    ####################################################################
+
+
+    groupedvalues = df.groupby('age').mean().reset_index()
+    groupedvalues_len = df.groupby('age').size().reset_index(name='counts')
+    g = sns.barplot(x='age', y='G3', data=groupedvalues)
+
+    pal = sns.color_palette("Greens_d", len(groupedvalues))
+    rank = groupedvalues_len["counts"].argsort().argsort()
+    g = sns.barplot(x='age', y='G3', data=groupedvalues, palette=np.array(pal[::-1])[rank])
+
+    for index, row, row_len in zip(range(0, np.max(df.age)+1 - np.min(df.age)),
+                          groupedvalues.iterrows(),
+                          groupedvalues_len.iterrows()):
+        g.text(index, 1, f'Count:\n{row_len[1].counts}', color='black', ha="center")
+    plt.show()
+
+
+
+
+    g_count += 1
+    # # Average grade
+    # list = []
+    # for i in range(1, 6):
+    #     list.append(sum(df[df.Walc == i].G3) / float(len(df[df.Walc == i])))
+    # ax = sns.barplot(x=[1, 2, 3, 4, 5], y=list)
+    # plt.ylabel('Average Grades of students')
+    # plt.xlabel('Weekly alcohol consumption')
+    # plt.show()
 
     treatment = ['Dalc', 'Walc']
     df['T'] = np.where(df[treatment[0]]+df[treatment[1]] >= 6, 1, -1)
@@ -103,26 +226,34 @@ class AverageTreatmentEstimator:
 
         print("Num after trim ", len(self.X_trimmed))
 
-        # Plot overlap (common support) of all features
-        # for column in df:
+        # # Plot avg scores
+        # # for column in df:
+        # fig, ax = plt.subplots()
+        # self.df.groupby('age')["G3"].plot(kind='hist', sharex=False, bins=30, alpha=0.5)
+        # ax.legend()
+        # ax.set_title("Original")
+        # plt.ylabel('number of observations')
+        # plt.show()
 
-        fig, ax = plt.subplots()
-        self.df.groupby('T')["propensity"].plot(kind='hist', sharex=True, bins=30, alpha=0.5)
-        ax.set_xlim([0, 1])
-        ax.set_title("Original")
-        ax.legend(["Control", "Treated"])
-        plt.xlabel('propensity')
-        plt.ylabel('number of observations')
-        plt.show()
 
-        fig, ax = plt.subplots()
-        ax.set_xlim([0, 1])
-        self.trim_common_support(self.df).groupby('T')["propensity"].plot(kind='hist', sharex=True, bins=30, alpha=0.5)
-        ax.set_title("After Trimming")
-        ax.legend(["Control", "Treated"])
-        plt.xlabel('propensity')
-        plt.ylabel('number of observations')
-        plt.show()
+
+        # fig, ax = plt.subplots()
+        # self.df.groupby('T')["propensity"].plot(kind='hist', sharex=True, bins=30, alpha=0.5)
+        # ax.set_xlim([0, 1])
+        # ax.set_title("Original")
+        # ax.legend(["Control", "Treated"])
+        # plt.xlabel('propensity')
+        # plt.ylabel('number of observations')
+        # plt.show()
+        #
+        # fig, ax = plt.subplots()
+        # ax.set_xlim([0, 1])
+        # self.trim_common_support(self.df).groupby('T')["propensity"].plot(kind='hist', sharex=True, bins=30, alpha=0.5)
+        # ax.set_title("After Trimming")
+        # ax.legend(["Control", "Treated"])
+        # plt.xlabel('propensity')
+        # plt.ylabel('number of observations')
+        # plt.show()
 
         (self.X,
          self.X_treated,
