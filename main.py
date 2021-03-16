@@ -48,34 +48,34 @@ def pre_process(df):
     # plt.title("Final Grade Distribution")
     # plt.show()
 
+    # # ####################################################################
+    # # ##########################   Walc / Dalc    ########################
+    # # ####################################################################
+    # fig = plt.figure(figsize=(9, 4))
+    # ax1 = fig.add_subplot(121)
+    # sns.countplot(x="Walc", palette="mako", data=df, ax=ax1)
+    # plt.title("Walc Histogram")
+    #
+    # ax2 = fig.add_subplot(122)
+    # sns.countplot(x="Dalc", palette="mako", data=df, ax=ax2)
+    # #sns.distplot(df["G3"], color="green", ax=ax2)
+    # plt.title("Dalc Histogram")
+    # plt.show()
+    #
     # ####################################################################
-    # ##########################   Walc / Dalc    ########################
+    # ########################   Walc + Dalc    ##########################
     # ####################################################################
-    fig = plt.figure(figsize=(9, 4))
-    ax1 = fig.add_subplot(121)
-    sns.countplot(x="Walc", palette="mako", data=df, ax=ax1)
-    plt.title("Walc Histogram")
-
-    ax2 = fig.add_subplot(122)
-    sns.countplot(x="Dalc", palette="mako", data=df, ax=ax2)
-    #sns.distplot(df["G3"], color="green", ax=ax2)
-    plt.title("Dalc Histogram")
-    plt.show()
-
-    ####################################################################
-    ########################   Walc + Dalc    ##########################
-    ####################################################################
-    df['Walc+Dalc'] = df['Walc'] + df['Dalc']
-    fig = plt.figure(figsize=(9, 4))
-    ax1 = fig.add_subplot(121)
-    sns.countplot(x="Walc+Dalc", palette="mako", data=df, ax=ax1)
-    plt.title("Walc+Dalc Histogram")
-
-    ax2 = fig.add_subplot(122)
-    sns.distplot(df["Walc+Dalc"], color="green", ax=ax2)
-    plt.title("Walc+Dalc Distribution")
-    plt.show()
-    df = df.drop("Walc+Dalc", inplace=False, axis=1)
+    # df['Walc+Dalc'] = df['Walc'] + df['Dalc']
+    # fig = plt.figure(figsize=(9, 4))
+    # ax1 = fig.add_subplot(121)
+    # sns.countplot(x="Walc+Dalc", palette="mako", data=df, ax=ax1)
+    # plt.title("Walc+Dalc Histogram")
+    #
+    # ax2 = fig.add_subplot(122)
+    # sns.distplot(df["Walc+Dalc"], color="green", ax=ax2)
+    # plt.title("Walc+Dalc Distribution")
+    # plt.show()
+    # df = df.drop("Walc+Dalc", inplace=False, axis=1)
 
     #####################################################################
     #####################################################################
@@ -138,26 +138,57 @@ def pre_process(df):
     # plt.xlabel('Age')
     # plt.show()
 
-    # ####################################################################
-    # ######################   Grades and Dalc+Walc    ###################
-    # ####################################################################
-    #
-    # df['Walc+Dalc'] = df['Walc']+df['Dalc']
-    # groupedvaluesDalc_Walc = df.groupby('Walc+Dalc').mean().reset_index()
-    #
-    # groupedvalues_len = df.groupby('Walc+Dalc').size().reset_index(name='counts')
-    # g = sns.barplot(x='Walc+Dalc', y='G3', data=groupedvaluesDalc_Walc)
-    #
-    # pal = sns.color_palette("Reds_d", len(groupedvaluesDalc_Walc))
-    # rank = groupedvalues_len["counts"].argsort().argsort()
-    # g = sns.barplot(x='Walc+Dalc', y='G3', data=groupedvaluesDalc_Walc, palette=np.array(pal[::-1])[rank])
-    #
-    # for index, row, row_len in zip(range(0, np.max(df['Walc+Dalc']) + 1 - np.min(df['Walc+Dalc'])),
-    #                                groupedvaluesDalc_Walc.iterrows(),
-    #                                groupedvalues_len.iterrows()):
-    #     g.text(index, 2, f'Count:\n{row_len[1].counts}', color='black', ha="center")
-    # plt.show()
-    # df = df.drop("Walc+Dalc", inplace=False, axis=1)
+    # plt.figure(figsize=(12, 8))
+    # plt.scatter(years, Brazil,
+    #             color='darkblue',
+    #             alpha=0.5,
+    #             s=b_normal * 2000)
+    # plt.scatter(years, Ireland,
+    #             color='purple',
+    #             alpha=0.5,
+    #             s=i_normal * 2000,
+    #             )
+    # plt.xlabel("Years", size=14)
+    # plt.ylabel("Number of immigrants", size=14)
+
+
+    ####################################################################
+    ######################   Grades and Dalc+Walc    ###################
+    ####################################################################
+
+    df['Walc+Dalc'] = df['Walc']+df['Dalc']
+    groupedvaluesDalc_Walc = df.groupby('Walc+Dalc').mean().reset_index()
+
+    groupedvalues_len = df.groupby('Walc+Dalc').size().reset_index(name='counts')
+    g = sns.barplot(x='Walc+Dalc', y='G3', data=groupedvaluesDalc_Walc)
+
+    pal = sns.color_palette("Reds_d", len(groupedvaluesDalc_Walc))
+    rank = groupedvalues_len["counts"].argsort().argsort()
+    g = sns.barplot(x='Walc+Dalc', y='G3', data=groupedvaluesDalc_Walc, palette=np.array(pal[::-1])[rank])
+
+    for index, row, row_len in zip(range(0, np.max(df['Walc+Dalc']) + 1 - np.min(df['Walc+Dalc'])),
+                                   groupedvaluesDalc_Walc.iterrows(),
+                                   groupedvalues_len.iterrows()):
+        g.text(index, 2, f'Count:\n{row_len[1].counts}', color='black', ha="center")
+    plt.show()
+
+    years = range(np.min(df['Walc+Dalc']), np.max(df['Walc+Dalc']) + 1)
+    plt.figure(figsize=(12, 12))
+    plt.scatter(years, groupedvaluesDalc_Walc['G3'],
+                color='darkblue',
+                alpha=0.5,
+                s=2 * 2000)
+    # plt.scatter(years, Ireland,
+    #             color='purple',
+    #             alpha=0.5,
+    #             s=i_normal * 2000,
+    #             )
+    plt.ylim([0, 20])
+    plt.xlabel("Dalc + Walc", size=14)
+    plt.ylabel("Final Grade Average", size=14)
+    plt.show()
+    df = df.drop("Walc+Dalc", inplace=False, axis=1)
+
     #
     # ####################################################################
     # #######################   Grades and Dalc    #######################
