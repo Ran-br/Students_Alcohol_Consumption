@@ -6,7 +6,9 @@ from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.linear_model import LinearRegression, LogisticRegression, TweedieRegressor
+from sklearn.metrics import mean_squared_error
 from sklearn.linear_model import Ridge
+from sklearn.metrics import roc_curve, auc
 
 g_count = 0
 files = ['mat', 'por', 'comb']
@@ -22,9 +24,9 @@ def pre_process(df):
     # plt.yticks(rotation=0)
     # plt.show()
 
-    # # ####################################################################
-    # # ##########################   Ages    ###############################
-    # # ####################################################################
+    # ####################################################################
+    # ##########################   Ages    ###############################
+    # ####################################################################
     # fig = plt.figure(figsize=(9, 4))
     # ax1 = fig.add_subplot(121)
     # sns.countplot(x="age", palette="mako", data=df, ax=ax1)
@@ -82,8 +84,8 @@ def pre_process(df):
 
     # Convert all 'yes' 'no' values to 0 and 1
     #print(df.to_string())
-    df.replace('yes', 1, inplace=True)
-    df.replace('no', 0, inplace=True)
+    # df.replace('yes', 1, inplace=True)
+    # df.replace('no', 0, inplace=True)
 
     # Find and split all columns to categorical and numerical
     categorical_feature_mask = df.dtypes == object
@@ -93,12 +95,6 @@ def pre_process(df):
 
     df = df[numeric_features].join(pd.get_dummies(df[categorical_features]))
 
-    # Define Treated and Non-treated separation
-    # treatment = 'Dalc'
-    # df['T'] = np.where(df[treatment] >= 2, 1, -1)
-    # df['T'].where(df[treatment] > 1, 0, inplace=True) # Careful here, pandas 'where' does the opposite of np.where
-    # df = df[df['T'] != -1]
-    # df.drop([treatment], inplace=True, axis=1)
 
     global g_count
 
@@ -156,44 +152,77 @@ def pre_process(df):
     ######################   Grades and Dalc+Walc    ###################
     ####################################################################
 
-    df['Walc+Dalc'] = df['Walc']+df['Dalc']
-    groupedvaluesDalc_Walc = df.groupby('Walc+Dalc').mean().reset_index()
+    # df['Walc+Dalc'] = df['Walc']+df['Dalc']
+    # groupedvaluesDalc_Walc = df.groupby('Walc+Dalc').mean().reset_index()
+    #
+    # groupedvalues_len = df.groupby('Walc+Dalc').size().reset_index(name='counts')
+    # g = sns.barplot(x='Walc+Dalc', y='G3', data=groupedvaluesDalc_Walc)
+    #
+    # pal = sns.color_palette("Purples_d", len(groupedvaluesDalc_Walc))
+    # rank = groupedvalues_len["counts"].argsort().argsort()
+    # g = sns.barplot(x='Walc+Dalc', y='G3', data=groupedvaluesDalc_Walc, palette=np.array(pal[::-1])[rank])
+    #
+    # for index, row, row_len in zip(range(0, np.max(df['Walc+Dalc']) + 1 - np.min(df['Walc+Dalc'])),
+    #                                groupedvaluesDalc_Walc.iterrows(),
+    #                                groupedvalues_len.iterrows()):
+    #     g.text(index, 1, f'Count:\n{row_len[1].counts}', color='black', ha="center")
+    #
+    # g.set(xlabel='Walc + Dalc', ylabel='G3 Group Average')
+    # g.set_title("Final Grade Averages vs Total Alcohol Consumption")
+    #
+    # plt.show()
 
-    groupedvalues_len = df.groupby('Walc+Dalc').size().reset_index(name='counts')
-    g = sns.barplot(x='Walc+Dalc', y='G3', data=groupedvaluesDalc_Walc)
-
-    pal = sns.color_palette("Reds_d", len(groupedvaluesDalc_Walc))
-    rank = groupedvalues_len["counts"].argsort().argsort()
-    g = sns.barplot(x='Walc+Dalc', y='G3', data=groupedvaluesDalc_Walc, palette=np.array(pal[::-1])[rank])
-
-    for index, row, row_len in zip(range(0, np.max(df['Walc+Dalc']) + 1 - np.min(df['Walc+Dalc'])),
-                                   groupedvaluesDalc_Walc.iterrows(),
-                                   groupedvalues_len.iterrows()):
-        g.text(index, 2, f'Count:\n{row_len[1].counts}', color='black', ha="center")
-    plt.show()
-
-    years = range(np.min(df['Walc+Dalc']), np.max(df['Walc+Dalc']) + 1)
-    plt.figure(figsize=(12, 12))
-    plt.scatter(years, groupedvaluesDalc_Walc['G3'],
-                color='darkblue',
-                alpha=0.5,
-                s=2 * 2000)
-    # plt.scatter(years, Ireland,
-    #             color='purple',
+    # years = range(np.min(df['Walc+Dalc']), np.max(df['Walc+Dalc']) + 1)
+    # counts = groupedvalues_len["counts"]
+    # c_normal = counts / counts.max()
+    #
+    # c_br = sorted(counts)
+    # plt.figure(figsize=(12, 12))
+    # plt.bar(years, groupedvaluesDalc_Walc['G3'],
     #             alpha=0.5,
-    #             s=i_normal * 2000,
-    #             )
-    plt.ylim([0, 20])
-    plt.xlabel("Dalc + Walc", size=14)
-    plt.ylabel("Final Grade Average", size=14)
-    plt.show()
-    df = df.drop("Walc+Dalc", inplace=False, axis=1)
+    #             width=c_normal)
+    # # plt.scatter(years, Ireland,
+    # #             color='purple',
+    # #             alpha=0.5,
+    # #             s=i_normal * 2000,
+    # #             )
+    # plt.ylim([0, 20])
+    # plt.xlabel("Dalc + Walc", size=14)
+    # plt.ylabel("Final Grade Average", size=14)
+    # plt.show()
+    #
+
+    ####################################################################
+    ############################## Box Plots ###########################
+    ####################################################################
+    # fig = plt.figure(figsize=(9, 4))
+    # g = sns.boxplot(x="Walc+Dalc", y="G3", data=df, palette='mako')
+    # g.set(xlabel='Walc + Dalc', ylabel='G3')
+    # plt.title("Box Plot of Final Grades Distribution Over Alcohol Usage")
+    # plt.show()
+    #
+    # ave = sum(df.G3) / float(len(df))
+    # df['ave_line'] = ave
+    # df['average'] = ['above average' if i > ave else 'under average' for i in df.G3]
+    # g = sns.swarmplot(x='Walc+Dalc', y='G3', hue='average', hue_order =['above average', 'under average'], data=df, palette='mako')
+    # g.set(xlabel='Walc + Dalc', ylabel='G3')
+    # g.set_title("Final Grade vs Total Alcohol Consumption")
+    # # replace labels
+    # for t, l in zip(g.legend().texts, ['Above average', 'Under average']): t.set_text(l)
+    # #sns.swarmplot(x="Walc+Dalc", y="G3", data=df, color=".25", size=3, palette='mako')
+    # plt.show()
+    #
+    # df = df.drop(['ave_line', 'average'], inplace=False, axis=1)
+    #
+    # df = df.drop("Walc+Dalc", inplace=False, axis=1)
+
+
 
     #
     # ####################################################################
     # #######################   Grades and Dalc    #######################
     # ####################################################################
-    #
+    # #
     # groupedvalues = df.groupby('Dalc').mean().reset_index()
     # groupedvalues_len = df.groupby('Dalc').size().reset_index(name='counts')
     # g = sns.barplot(x='Dalc', y='G3', data=groupedvalues)
@@ -206,8 +235,10 @@ def pre_process(df):
     #                                groupedvalues.iterrows(),
     #                                groupedvalues_len.iterrows()):
     #     g.text(index, 1, f'Count:\n{row_len[1].counts}', color='black', ha="center")
+    # g.set(xlabel='Dalc', ylabel='G3 Group Average')
+    # g.set_title("Final Grade Averages vs Weekdays Alcohol Consumption")
     # plt.show()
-    #
+    # #
     # ####################################################################
     # #######################   Grades and Walc    #######################
     # ####################################################################
@@ -216,11 +247,11 @@ def pre_process(df):
     # groupedvalues_len = df.groupby('Walc').size().reset_index(name='counts')
     # g = sns.barplot(x='Walc', y='G3', data=groupedvalues)
     #
-    # pal = sns.color_palette("Oranges_d", len(groupedvalues))
+    # pal = sns.color_palette("Greens_d", len(groupedvalues))
     # rank = groupedvalues_len["counts"].argsort().argsort()
     # g = sns.barplot(x='Walc', y='G3', data=groupedvalues, palette=np.array(pal[::-1])[rank])
-    # g.set(xlabel='Guyhomo', ylabel='common ylabel')
-    # g.set_title("guygever")
+    # g.set(xlabel='Walc', ylabel='G3 Group Average')
+    # g.set_title("Final Grade Averages vs Weekend Alcohol Consumption")
     #
     # for index, row, row_len in zip(range(0, np.max(df.Walc) + 1 - np.min(df.Walc)),
     #                                groupedvalues.iterrows(),
@@ -228,16 +259,17 @@ def pre_process(df):
     #     g.text(index, 1, f'Count:\n{row_len[1].counts}', color='black', ha="center")
     # plt.show()
     #
-    # ####################################################################
-    # #######################   Grades and Ages    #######################
-    # ####################################################################
-    #
+    # #
+    ####################################################################
+    #######################   Grades and Ages    #######################
+    ####################################################################
+
     #
     # groupedvalues = df.groupby('age').mean().reset_index()
     # groupedvalues_len = df.groupby('age').size().reset_index(name='counts')
     # g = sns.barplot(x='age', y='G3', data=groupedvalues)
     #
-    # pal = sns.color_palette("Greens_d", len(groupedvalues))
+    # pal = sns.color_palette("Purples_d", len(groupedvalues))
     # rank = groupedvalues_len["counts"].argsort().argsort()
     # g = sns.barplot(x='age', y='G3', data=groupedvalues, palette=np.array(pal[::-1])[rank])
     #
@@ -265,6 +297,14 @@ def pre_process(df):
     df['T'].where(df[treatment[0]]+df[treatment[1]] > 2, 0, inplace=True)  # Careful here, pandas 'where' does the opposite of np.where
     df = df[df['T'] != -1]
     df.drop(treatment, inplace=True, axis=1)
+
+    # Define Treated and Non-treated separation
+    # treatment = 'Dalc'
+    # df['T'] = np.where(df[treatment] >= 3, 1, -1)
+    # df['T'].where(df[treatment] > 1, 0, inplace=True) # Careful here, pandas 'where' does the opposite of np.where
+    # df = df[df['T'] != -1]
+    # df.drop([treatment], inplace=True, axis=1)
+
 
     # Plot overlap (common support) of all features
     # for column in df:
@@ -335,6 +375,7 @@ class AverageTreatmentEstimator:
 
         print("Num after trim ", len(self.X_trimmed))
 
+
         # # Plot avg scores
         # # for column in df:
         # fig, ax = plt.subplots()
@@ -344,33 +385,42 @@ class AverageTreatmentEstimator:
         # plt.ylabel('number of observations')
         # plt.show()
 
-
-
+        ###############################################################
+        ################ Before Trimming Common Support   ##############
+        ###############################################################
         # fig, ax = plt.subplots()
-        # self.df.groupby('T')["propensity"].plot(kind='hist', sharex=True, bins=30, alpha=0.5)
+        # self.df.groupby('T')["propensity"].plot(kind='hist', sharex=True, bins=10, alpha=0.5)
         # ax.set_xlim([0, 1])
         # ax.set_title("Original")
         # ax.legend(["Control", "Treated"])
         # plt.xlabel('propensity')
         # plt.ylabel('number of observations')
-        # plt.show()
-        #
-        # fig, ax = plt.subplots()
-        # ax.set_xlim([0, 1])
-        # self.trim_common_support(self.df).groupby('T')["propensity"].plot(kind='hist', sharex=True, bins=30, alpha=0.5)
-        # ax.set_title("After Trimming")
-        # ax.legend(["Control", "Treated"])
-        # plt.xlabel('propensity')
-        # plt.ylabel('number of observations')
+        # #plt.ylim([0, 100])
         # plt.show()
 
+        self.df = self.trim_common_support(self.df)
         (self.X,
          self.X_treated,
          self.X_control,
          self.y,
          self.y_treated,
          self.y_control,
-         self.T) = split_data(self.trim_common_support(self.df))
+         self.T) = split_data(self.df)
+
+        ###############################################################
+        ################ After Trimming Common Support   ##############
+        ###############################################################
+        # fig, ax = plt.subplots()
+        # ax.set_xlim([0, 1])
+        # self.df.groupby('T')["propensity"].plot(kind='hist', sharex=True, bins=10, alpha=0.5)
+        # ax.set_title("After Trimming")
+        # ax.legend(["Control", "Treated"])
+        # plt.xlabel('propensity')
+        # plt.ylabel('number of observations')
+        # #plt.ylim([0, 100])
+        # plt.show()
+
+
 
         # temp = np.column_stack([self.X, self.T, self.y])
         # df_temp = pd.DataFrame(temp)
@@ -387,6 +437,7 @@ class AverageTreatmentEstimator:
     def calc_propensity(self):
         model = LogisticRegression() # We can add C=1e6 to cancel default sklearn regularization
         model.fit(self.X, self.T)
+
         return model
 
     def propensity_score(self, X_values):
@@ -437,9 +488,18 @@ class AverageTreatmentEstimator:
         y_predict_not_treated = model.predict(np.column_stack([self.X_treated, np.zeros(self.X_treated.shape[0])]))
         return np.mean(y_predict_treated - y_predict_not_treated)
 
-    def s_learner_ate(self, model=Ridge()):
+    def s_learner_ate(self, model=GaussianProcessRegressor()):
         model.fit(np.column_stack([self.X, self.T]), self.y)
 
+        # X_with_T = np.column_stack([self.X, self.T])
+        # y_pred = model.predict(X_with_T)
+        # print('Accuracy', model.score(X_with_T, self.y))
+        # print('Brier', np.mean((y_pred - self.y) ** 2))
+        # fpr, tpr, _ = roc_curve(self.y, y_pred)
+        # plt.plot(fpr, tpr, label=f'ROC curve (area = {auc(fpr, tpr)})')
+        # plt.plot([0, 1], [0, 1], linestyle='--', label='Random Classifier')
+        # plt.legend()
+        # plt.show()
         ####################################################################
         #######################   Coefficiants    #######################
         ####################################################################
@@ -465,10 +525,11 @@ class AverageTreatmentEstimator:
         return np.mean(y_predict_treated - y_predict_not_treated)
 
     def t_learner_ate(self):
-        treated_model = GaussianProcessRegressor()
-        control_model = GaussianProcessRegressor()
-        # treated_model = LinearRegression()
-        # control_model = LinearRegression()
+        # treated_model = GaussianProcessRegressor()
+        # control_model = GaussianProcessRegressor()
+        treated_model = Ridge(alpha=1e10)
+        control_model = Ridge(alpha=1e10)
+
         treated_model.fit(self.X_treated, self.y_treated)
         control_model.fit(self.X_control, self.y_control)
 
@@ -479,10 +540,19 @@ class AverageTreatmentEstimator:
         #print('t_learner R^2 of treated_model', treated_model.score(self.X_treated, self.y_treated))
         #print('t_learner R^2 of control_model', control_model.score(self.X_control, self.y_control))
 
+        print('\nRMSE: pred_control', mean_squared_error(self.y_treated, pred_treated)**0.5)
+        #print('Real std from guy', np.mean((self.y_treated - np.mean(self.y_treated))**2)**0.5)
+        print('Real std ', np.std(self.y_treated))
+
+        print('\nRMSE: pred_control', mean_squared_error(self.y_control, pred_control) ** 0.5)
+        #print('Real std from guy', np.mean((self.y_control - np.mean(self.y_control)) ** 2) ** 0.5)
+        print('Real std ', np.std(self.y_control))
+
         return np.mean(treated_model.predict(self.X) - control_model.predict(self.X))
 
     def matching_att(self):
-        model = KNeighborsRegressor(algorithm='auto', metric='euclidean', n_neighbors=1)
+        model_control = KNeighborsRegressor(algorithm='auto', metric='euclidean', n_neighbors=1)
+        model_treatment = KNeighborsRegressor(algorithm='auto', metric='euclidean', n_neighbors=1)
 
         # Propensity Score Matching
         # control_propensity = self.propensity_score(self.X_control).reshape([-1, 1])
@@ -491,12 +561,17 @@ class AverageTreatmentEstimator:
         # y_predicted = model.predict(treated_propensity)
 
         # Train the model
-        model.fit(self.X_control, self.y_control)
+        model_control.fit(self.X_control, self.y_control)
+        model_treatment.fit(self.X_treated, self.y_treated)
 
         # Predict for treated only
-        y_predicted = model.predict(self.X_treated)
+        y_predicted_treated = model_control.predict(self.X_treated)
+        y_predicted_control = model_treatment.predict(self.X_control)
 
-        return np.mean(self.y_treated - y_predicted)
+        #return np.mean(self.y_treated - y_predicted)
+        treated_mean = np.mean(self.y_treated - y_predicted_treated)
+        control_mean = np.mean(y_predicted_control - self.y_control)
+        return np.mean((self.y_treated - y_predicted_treated).append(y_predicted_control - self.y_control))
 
     # Use doubly robust estimator to try and decrease the possible error of estimation
     def doubly_robust(self):
@@ -533,9 +608,32 @@ def main():
 
     df_combined = pd.concat([df_mat, df_por], ignore_index=True)
 
-    print(len(df_mat))
-    print(len(df_por))
-    print(len(df_combined))
+    # Select all duplicate rows based on multiple column names in list
+    check_dupe = ["school","sex","age","address","famsize","Pstatus","Medu","Fedu","Mjob","Fjob","reason","nursery","internet"]#+['guardian', 'activities', 'higher', 'romantic', 'freetime', 'goout', 'Dalc', 'Walc', 'health']
+    df_no_dupe = df_combined[df_combined.duplicated(df_combined.drop(['G1', 'G2', 'G3', 'failures', 'studytime', 'absences', 'paid', 'guardian', 'traveltime', 'schoolsup', 'higher', 'romantic', 'famrel', 'freetime', 'goout', 'Dalc', 'Walc', 'health'], axis=1).columns)]
+    df_no_dupe2 = df_combined[df_combined.duplicated(check_dupe)].reset_index()
+
+
+    our_check_dupe = list(df_combined.drop(['G1', 'G2', 'G3', 'failures', 'absences'], axis=1).columns)
+    print("Columns to check for dupes:", [x for x in our_check_dupe if x not in check_dupe])
+    print('Mat: ', len(df_mat))
+    print('Por: ', len(df_por))
+    print('Combined: ', len(df_combined))
+    print('Dupes: ', len(df_no_dupe2))
+    print('Unique: ', len(df_combined)-len(df_no_dupe2))
+
+    print("Above 19:", len(df_combined[df_combined['age'] >= 19]) / len(df_no_dupe2))
+    print("Below 19:", len(df_combined[df_combined['age'] < 19]) / len(df_no_dupe2))
+
+    print("Walc+Dalc = 2:", len(df_combined[(df_combined['Walc'] + df_combined['Dalc']) == 2]) / len(df_combined))
+    print("Walc = 1:", len(df_combined[df_combined['Walc'] <= 1]) / len(df_combined))
+    print("Dalc = 1:", len(df_combined[df_combined['Dalc'] <= 1]) / len(df_combined))
+
+    print("Mean grade:", np.mean(df_combined['G3']))
+    print("Median grade:", np.median(df_combined['G3']))
+    print("std grade:", np.std(df_combined['G3']))
+
+    df_no_dupe2 = df_combined[df_combined['age'] < 19].reset_index()
 
     # years = [2014, 2014, 2014, 2015, 2015, 2015, 2015]
     # vehicle_types = ['Truck', 'Truck', 'Car', 'Bike', 'Truck', 'Bike', 'Car']
@@ -567,17 +665,20 @@ def main():
     estimator1 = AverageTreatmentEstimator(df_mat)
     estimator2 = AverageTreatmentEstimator(df_por)
     estimator3 = AverageTreatmentEstimator(df_combined)
+    #estimator4 = AverageTreatmentEstimator(df_no_dupe2)
 
     estimator1.save_df()
     estimator2.save_df()
-    estimator3.save_df()
+    #estimator3.save_df()
 
     att1 = estimator1.return_all_ate()
     att2 = estimator2.return_all_ate()
     att3 = estimator3.return_all_ate()
+    #att4 = estimator4.return_all_ate()
 
 
     att_df = pd.DataFrame(zip(range(1, 7, 1), att1, att2, att3), columns=['Type', 'mat', 'por', 'combined'])
+    #att_df = pd.DataFrame(zip(range(1, 8, 1), att1, att2, att3, att4), columns=['Type', 'mat', 'por', 'combined', 'no_dupe'])
     print(att_df)
     # att_df.to_csv('ATT_results.csv', index=False)
     #
