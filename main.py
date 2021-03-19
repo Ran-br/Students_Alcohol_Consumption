@@ -667,8 +667,8 @@ def main():
     estimator3 = AverageTreatmentEstimator(df_combined)
     #estimator4 = AverageTreatmentEstimator(df_no_dupe2)
 
-    estimator1.save_df()
-    estimator2.save_df()
+    # estimator1.save_df()
+    # estimator2.save_df()
     #estimator3.save_df()
 
     att1 = estimator1.return_all_ate()
