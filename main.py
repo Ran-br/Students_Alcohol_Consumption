@@ -560,8 +560,35 @@ class AverageTreatmentEstimator:
         return np.mean(treated_model.predict(self.X) - control_model.predict(self.X))
 
     def matching_att(self):
-        model_control = KNeighborsRegressor(algorithm='auto', metric='euclidean', n_neighbors=1)
-        model_treatment = KNeighborsRegressor(algorithm='auto', metric='euclidean', n_neighbors=1)
+        model = KNeighborsRegressor(algorithm='auto', metric='euclidean', n_neighbors=1)
+
+        # Propensity Score Matching
+        # control_propensity = self.propensity_score(self.X_control).reshape([-1, 1])
+        # treated_propensity = self.propensity_score(self.X_treated).reshape([-1, 1])
+        # model.fit(control_propensity, self.y_control)
+        # y_predicted = model.predict(treated_propensity)
+
+        # Train the model
+        model.fit(self.X_control, self.y_control)
+
+        # Predict for treated only
+        y_predicted_treated = model.predict(self.X_treated)
+
+        #return np.mean(self.y_treated - y_predicted)
+        treated_mean = np.mean(self.y_treated - y_predicted_treated)
+        return treated_mean
+
+    def matching_ate(self):
+        # model_control = KNeighborsRegressor(algorithm='brute', metric='mahalanobis', n_neighbors=1)
+        # model_treatment = KNeighborsRegressor(algorithm='brute', metric='mahalanobis', n_neighbors=1)
+        model_control = KNeighborsRegressor(algorithm = 'brute',
+                                            metric = 'mahalanobis',
+                                            metric_params = {'VI': np.cov(self.X)}, n_neighbors=5)
+        model_treatment = KNeighborsRegressor(algorithm = 'brute',
+                                              metric = 'mahalanobis',
+                                              metric_params = {'VI': np.cov(self.X)}, n_neighbors=1)
+        # model_control = KNeighborsRegressor(algorithm='auto', metric='euclidean', n_neighbors=1)
+        # model_treatment = KNeighborsRegressor(algorithm='auto', metric='euclidean', n_neighbors=1)
 
         # Propensity Score Matching
         # control_propensity = self.propensity_score(self.X_control).reshape([-1, 1])
@@ -578,9 +605,28 @@ class AverageTreatmentEstimator:
         y_predicted_control = model_treatment.predict(self.X_control)
 
         #return np.mean(self.y_treated - y_predicted)
-        treated_mean = np.mean(self.y_treated - y_predicted_treated)
-        control_mean = np.mean(y_predicted_control - self.y_control)
+        # treated_mean = np.mean(self.y_treated - y_predicted_treated)
+        # control_mean = np.mean(y_predicted_control - self.y_control)
         return np.mean((self.y_treated - y_predicted_treated).append(y_predicted_control - self.y_control))
+
+        ####################################################################################
+        ##################### Try propensity score matching for ATE ########################
+        ####################################################################################
+        # control_propensity = self.propensity_score(self.X_control).reshape([-1, 1])
+        # treated_propensity = self.propensity_score(self.X_treated).reshape([-1, 1])
+        # # Train the model
+        # model_control.fit(control_propensity, self.y_control)
+        # model_treatment.fit(treated_propensity, self.y_treated)
+        #
+        # # Predict for treated only
+        # y_predicted_treated = model_control.predict(treated_propensity)
+        # y_predicted_control = model_treatment.predict(control_propensity)
+        #
+        # # return np.mean(self.y_treated - y_predicted)
+        # treated_mean = np.mean(self.y_treated - y_predicted_treated)
+        # control_mean = np.mean(y_predicted_control - self.y_control)
+        # return np.mean((self.y_treated - y_predicted_treated).append(y_predicted_control - self.y_control))
+
 
     # Use doubly robust estimator to try and decrease the possible error of estimation
     def doubly_robust(self):
@@ -595,7 +641,7 @@ class AverageTreatmentEstimator:
         return att + [np.average(att)]
 
     def return_all_ate(self):
-        att = [self.ipw_ate(), self.s_learner_ate(), self.t_learner_ate(), self.matching_att(), self.doubly_robust()]
+        att = [self.ipw_ate(), self.s_learner_ate(), self.t_learner_ate(), self.matching_ate(), self.doubly_robust()]
         return att + [np.average(att)]
 
     def print_histogram(self, col_idx):
@@ -685,10 +731,10 @@ def main():
     att3 = estimator3.return_all_ate()
     #att4 = estimator4.return_all_ate()
 
-
-    att_df = pd.DataFrame(zip(range(1, 7, 1), att1, att2, att3), columns=['Type', 'mat', 'por', 'combined'])
+    methods = ['IPW', 'S_Learner', 'T_Learner', 'Matching', 'Doubly Robust', 'Average']
+    att_df = pd.DataFrame(zip(methods, att1, att2, att3), columns=['Type', 'mat', 'por', 'combined'])
     #att_df = pd.DataFrame(zip(range(1, 8, 1), att1, att2, att3, att4), columns=['Type', 'mat', 'por', 'combined', 'no_dupe'])
-    print(att_df)
+    print(att_df.to_string())
     # att_df.to_csv('ATT_results.csv', index=False)
     #
     # propensity_df = pd.DataFrame(data=[estimator1.all_propensity_score, estimator2.all_propensity_score],
