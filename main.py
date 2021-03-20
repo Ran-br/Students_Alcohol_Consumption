@@ -1,5 +1,4 @@
 from copy import deepcopy
-
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -190,7 +189,6 @@ def print_graphs(df):
                                    groupedvalues_len.iterrows()):
         g.text(index, 1, f'Count:\n{row_len[1].counts}', color='black', ha="center")
     plt.show()
-
     g_count += 1
 
 
@@ -206,7 +204,7 @@ def print_common_support_graphs(df):
 
 def pre_process(df):
     # Print all the graphs for the raw data
-    #print_graphs(deepcopy(df))
+    print_graphs(deepcopy(df))
 
     # Find and split all columns to categorical and numerical
     categorical_feature_mask = df.dtypes == object
@@ -231,7 +229,7 @@ def pre_process(df):
     # df.drop([treatment], inplace=True, axis=1)
 
     # Visualize the overlap between the treated group and the control
-    #print_common_support_graphs(deepcopy(df))
+    print_common_support_graphs(deepcopy(df))
 
     return df
 
@@ -284,16 +282,6 @@ class AverageTreatmentEstimator:
 
         print("Num after trim ", len(self.X_trimmed))
 
-
-        # # Plot avg scores
-        # # for column in df:
-        # fig, ax = plt.subplots()
-        # self.df.groupby('age')["G3"].plot(kind='hist', sharex=False, bins=30, alpha=0.5)
-        # ax.legend()
-        # ax.set_title("Original")
-        # plt.ylabel('number of observations')
-        # plt.show()
-
         ###############################################################
         ################ Before Trimming Common Support   ##############
         ###############################################################
@@ -329,23 +317,19 @@ class AverageTreatmentEstimator:
         # #plt.ylim([0, 100])
         # plt.show()
 
-
-
-        # temp = np.column_stack([self.X, self.T, self.y])
-        # df_temp = pd.DataFrame(temp)
-
-        #df_temp[7].hist(by=df_temp[46])
-
-        #self.df['famsup'].hist(by=self.df['paid'])
-
-        # for i in range(40):
-        #     self.print_histogram(i)
-        #df_temp.groupby(46)[3].plot(kind='hist', sharex=True, range=(0, 40000), bins=30, alpha=0.75)
-        #self.df.groupby('paid')['famsup'].plot(kind='hist', sharex=True, range=(0, 40000), bins=30, alpha=0.75)
-
     def calc_propensity(self):
         model = LogisticRegression() # We can add C=1e6 to cancel default sklearn regularization
         model.fit(self.X, self.T)
+
+        # # Print ROC to check propensity model
+        # t_pred = model.predict(self.X)
+        # print('Accuracy', model.score(self.X, self.T))
+        # print('Brier', np.mean((t_pred - self.y) ** 2))
+        # fpr, tpr, _ = roc_curve(self.T, t_pred)
+        # plt.plot(fpr, tpr, linestyle='dotted', label=f'ROC curve (AUC = {auc(fpr, tpr)})')
+        # plt.plot([0, 1], [0, 1], linestyle='dashed', label='Logistic Regression')
+        # plt.legend()
+        # plt.show()
 
         return model
 
@@ -353,7 +337,6 @@ class AverageTreatmentEstimator:
         return self.prop_model.predict_proba(X_values)[:, -1]
 
     def trim_common_support(self, data):
-
         data['propensity'] = self.propensity_score(self.X)
         # Save results to a file for easier read
         #data.to_csv("with_propensity.csv", index=False)
@@ -400,18 +383,8 @@ class AverageTreatmentEstimator:
     def s_learner_ate(self, model=GaussianProcessRegressor()):
         model.fit(np.column_stack([self.X, self.T]), self.y)
 
-
-        # X_with_T = np.column_stack([self.X, self.T])
-        # y_pred = model.predict(X_with_T)
-        # print('Accuracy', model.score(X_with_T, self.y))
-        # print('Brier', np.mean((y_pred - self.y) ** 2))
-        # fpr, tpr, _ = roc_curve(self.y, y_pred)
-        # plt.plot(fpr, tpr, label=f'ROC curve (area = {auc(fpr, tpr)})')
-        # plt.plot([0, 1], [0, 1], linestyle='--', label='Random Classifier')
-        # plt.legend()
-        # plt.show()
         ####################################################################
-        #######################   Coefficiants    #######################
+        #######################   Coefficiants    ##########################
         ####################################################################
         # cdf = pd.DataFrame(model.coef_, self.df.drop(['propensity', 'G1', 'G2', 'G3'], axis=1).columns, columns=['Coefficients'])
         # #print(sorted(cdf.to_dict().values(), key=lambda x: np.absolute(x)))
@@ -423,8 +396,6 @@ class AverageTreatmentEstimator:
         # plt.axvline(x=0, color='.5')
         # plt.subplots_adjust(left=.3)
         # plt.show()
-        #
-
 
         # print("S1", model.score(np.column_stack([self.X_treated, np.ones(self.X_treated.shape[0])]), self.y_treated))
         # print("S2", model.score(np.column_stack([self.X_treated, np.zeros(self.X_treated.shape[0])]), self.y_treated))
@@ -435,7 +406,6 @@ class AverageTreatmentEstimator:
 
         print('\nS_Learner RMSE: pred_treated %.2f' % mean_squared_error(self.y, y_predict_treated) ** 0.5)
         print('S_Learner RMSE: pred_control %.2f' % mean_squared_error(self.y, y_predict_not_treated) ** 0.5)
-        # print('Real std from guy', np.mean((self.y_treated - np.mean(self.y_treated))**2)**0.5)
         print('S_Learner Real std %.2f' % np.std(self.y_treated))
         print('S_Learner Real std %.2f' % np.std(self.y_control))
 
@@ -483,7 +453,6 @@ class AverageTreatmentEstimator:
         # Predict for treated only
         y_predicted_treated = model.predict(self.X_treated)
 
-        #return np.mean(self.y_treated - y_predicted)
         treated_mean = np.mean(self.y_treated - y_predicted_treated)
 
         return treated_mean
