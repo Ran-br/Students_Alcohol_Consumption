@@ -479,7 +479,7 @@ class AverageTreatmentEstimator:
         ate = np.mean((self.T * self.y)/e_x) - np.mean(((1 - self.T) * self.y) / (1 - e_x))
         return ate
 
-    def s_learner_att(self, model=GaussianProcessRegressor(kernel=RBF(length_scale=1.0, length_scale_bounds=(1e-1, 10.0)))):
+    def s_learner_att(self, model=GaussianProcessRegressor()):
         model.fit(np.column_stack([self.X, self.T]), self.y)
 
         # print("S1", model.score(np.column_stack([self.X_treated, np.ones(self.X_treated.shape[0])]), self.y_treated))
@@ -490,7 +490,7 @@ class AverageTreatmentEstimator:
         y_predict_not_treated = model.predict(np.column_stack([self.X_treated, np.zeros(self.X_treated.shape[0])]))
         return np.mean(y_predict_treated - y_predict_not_treated)
 
-    def s_learner_ate(self, model=GaussianProcessRegressor(kernel=RBF(length_scale=1.0, length_scale_bounds=(1e-1, 10.0)))):
+    def s_learner_ate(self, model=GaussianProcessRegressor()):
         model.fit(np.column_stack([self.X, self.T]), self.y)
 
 
@@ -526,18 +526,19 @@ class AverageTreatmentEstimator:
         y_predict_treated = model.predict(np.column_stack([self.X, np.ones(self.X.shape[0])]))
         y_predict_not_treated = model.predict(np.column_stack([self.X, np.zeros(self.X.shape[0])]))
 
-        print('\nS_Learner RMSE: pred_treated', mean_squared_error(self.y, y_predict_treated) ** 0.5)
-        print('S_Learner RMSE: pred_control', mean_squared_error(self.y, y_predict_not_treated) ** 0.5)
+        print('\nS_Learner RMSE: pred_treated %.2f' % mean_squared_error(self.y, y_predict_treated) ** 0.5)
+        print('S_Learner RMSE: pred_control %.2f' % mean_squared_error(self.y, y_predict_not_treated) ** 0.5)
         # print('Real std from guy', np.mean((self.y_treated - np.mean(self.y_treated))**2)**0.5)
-        print('S_Learner Real std ', np.std(self.y))
+        print('S_Learner Real std %.2f' % np.std(self.y_treated))
+        print('S_Learner Real std %.2f' % np.std(self.y_control))
 
         return np.mean(y_predict_treated - y_predict_not_treated)
 
     def t_learner_ate(self):
-        # treated_model = GaussianProcessRegressor()
-        # control_model = GaussianProcessRegressor()
-        treated_model = Ridge(alpha=1e10)
-        control_model = Ridge(alpha=1e10)
+        treated_model = GaussianProcessRegressor()
+        control_model = GaussianProcessRegressor()
+        # treated_model = Ridge(alpha=1e10)
+        # control_model = Ridge(alpha=1e10)
 
         treated_model.fit(self.X_treated, self.y_treated)
         control_model.fit(self.X_control, self.y_control)
@@ -549,13 +550,13 @@ class AverageTreatmentEstimator:
         #print('t_learner R^2 of treated_model', treated_model.score(self.X_treated, self.y_treated))
         #print('t_learner R^2 of control_model', control_model.score(self.X_control, self.y_control))
 
-        # print('\nRMSE: pred_control', mean_squared_error(self.y_treated, pred_treated)**0.5)
-        # #print('Real std from guy', np.mean((self.y_treated - np.mean(self.y_treated))**2)**0.5)
-        # print('Real std ', np.std(self.y_treated))
-        #
-        # print('\nRMSE: pred_control', mean_squared_error(self.y_control, pred_control) ** 0.5)
-        # #print('Real std from guy', np.mean((self.y_control - np.mean(self.y_control)) ** 2) ** 0.5)
-        # print('Real std ', np.std(self.y_control))
+        print('\nT_Learner RMSE: pred_control', mean_squared_error(self.y_treated, pred_treated)**0.5)
+        #print('Real std from guy', np.mean((self.y_treated - np.mean(self.y_treated))**2)**0.5)
+        print('Real std ', np.std(self.y_treated))
+
+        print('\nT_Learner RMSE: pred_control', mean_squared_error(self.y_control, pred_control) ** 0.5)
+        #print('Real std from guy', np.mean((self.y_control - np.mean(self.y_control)) ** 2) ** 0.5)
+        print('T_ Learner Real std ', np.std(self.y_control))
 
         return np.mean(treated_model.predict(self.X) - control_model.predict(self.X))
 
@@ -576,6 +577,7 @@ class AverageTreatmentEstimator:
 
         #return np.mean(self.y_treated - y_predicted)
         treated_mean = np.mean(self.y_treated - y_predicted_treated)
+
         return treated_mean
 
     def matching_ate(self):
@@ -604,6 +606,12 @@ class AverageTreatmentEstimator:
         y_predicted_treated = model_control.predict(self.X_treated)
         y_predicted_control = model_treatment.predict(self.X_control)
 
+        print('\nMatching RMSE: pred_treated %.2f' % mean_squared_error(self.y_treated, y_predicted_treated) ** 0.5)
+        print('Matching RMSE: pred_control %.2f' % mean_squared_error(self.y_control, y_predicted_control) ** 0.5)
+        # print('Real std from guy', np.mean((self.y_treated - np.mean(self.y_treated))**2)**0.5)
+        print('Matching Real std %.2f' % np.std(self.y_treated))
+        print('Matching Real std %.2f' % np.std(self.y_control))
+
         #return np.mean(self.y_treated - y_predicted)
         # treated_mean = np.mean(self.y_treated - y_predicted_treated)
         # control_mean = np.mean(y_predicted_control - self.y_control)
@@ -627,12 +635,25 @@ class AverageTreatmentEstimator:
         # control_mean = np.mean(y_predicted_control - self.y_control)
         # return np.mean((self.y_treated - y_predicted_treated).append(y_predicted_control - self.y_control))
 
-
     # Use doubly robust estimator to try and decrease the possible error of estimation
     def doubly_robust(self):
         ps = self.propensity_score(self.X)
-        mu0 = GaussianProcessRegressor().fit(self.X_control, self.y_control).predict(self.X)
+        mu0 = Ridge(alpha=1e-10).fit(self.X_control, self.y_control).predict(self.X)
         mu1 = GaussianProcessRegressor().fit(self.X_treated, self.y_treated).predict(self.X)
+
+        control_model = GaussianProcessRegressor()
+        control_model.fit(self.X_control, self.y_control)
+        treated_model = GaussianProcessRegressor()
+        treated_model.fit(self.X_treated, self.y_treated)
+
+        res1 = np.mean(treated_model.predict(self.X) - control_model.predict(self.X))
+        res2 = (np.mean(self.T * (self.y - mu1) / ps + mu1) -
+                np.mean((1 - self.T) * (self.y - mu0) / (1 - ps) + mu0))
+
+        g1 = mu1 + (self.T / ps) * (self.y - mu1)
+        g0 = mu0 + ((1 - self.T) / (1 - ps)) * (self.y - mu0)
+
+        return np.mean(g1 - g0)
         return (np.mean(self.T * (self.y - mu1) / ps + mu1) -
                 np.mean((1 - self.T) * (self.y - mu0) / (1 - ps) + mu0))
 
