@@ -2,7 +2,9 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+from sklearn.ensemble import RandomForestRegressor
 from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import RBF, ConstantKernel
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.linear_model import LinearRegression, LogisticRegression, TweedieRegressor
@@ -477,7 +479,7 @@ class AverageTreatmentEstimator:
         ate = np.mean((self.T * self.y)/e_x) - np.mean(((1 - self.T) * self.y) / (1 - e_x))
         return ate
 
-    def s_learner_att(self, model=GaussianProcessRegressor()):
+    def s_learner_att(self, model=GaussianProcessRegressor(kernel=RBF(length_scale=1.0, length_scale_bounds=(1e-1, 10.0)))):
         model.fit(np.column_stack([self.X, self.T]), self.y)
 
         # print("S1", model.score(np.column_stack([self.X_treated, np.ones(self.X_treated.shape[0])]), self.y_treated))
@@ -488,8 +490,9 @@ class AverageTreatmentEstimator:
         y_predict_not_treated = model.predict(np.column_stack([self.X_treated, np.zeros(self.X_treated.shape[0])]))
         return np.mean(y_predict_treated - y_predict_not_treated)
 
-    def s_learner_ate(self, model=GaussianProcessRegressor()):
+    def s_learner_ate(self, model=GaussianProcessRegressor(kernel=RBF(length_scale=1.0, length_scale_bounds=(1e-1, 10.0)))):
         model.fit(np.column_stack([self.X, self.T]), self.y)
+
 
         # X_with_T = np.column_stack([self.X, self.T])
         # y_pred = model.predict(X_with_T)
@@ -522,6 +525,12 @@ class AverageTreatmentEstimator:
         # ATE
         y_predict_treated = model.predict(np.column_stack([self.X, np.ones(self.X.shape[0])]))
         y_predict_not_treated = model.predict(np.column_stack([self.X, np.zeros(self.X.shape[0])]))
+
+        print('\nS_Learner RMSE: pred_treated', mean_squared_error(self.y, y_predict_treated) ** 0.5)
+        print('S_Learner RMSE: pred_control', mean_squared_error(self.y, y_predict_not_treated) ** 0.5)
+        # print('Real std from guy', np.mean((self.y_treated - np.mean(self.y_treated))**2)**0.5)
+        print('S_Learner Real std ', np.std(self.y))
+
         return np.mean(y_predict_treated - y_predict_not_treated)
 
     def t_learner_ate(self):
@@ -540,13 +549,13 @@ class AverageTreatmentEstimator:
         #print('t_learner R^2 of treated_model', treated_model.score(self.X_treated, self.y_treated))
         #print('t_learner R^2 of control_model', control_model.score(self.X_control, self.y_control))
 
-        print('\nRMSE: pred_control', mean_squared_error(self.y_treated, pred_treated)**0.5)
-        #print('Real std from guy', np.mean((self.y_treated - np.mean(self.y_treated))**2)**0.5)
-        print('Real std ', np.std(self.y_treated))
-
-        print('\nRMSE: pred_control', mean_squared_error(self.y_control, pred_control) ** 0.5)
-        #print('Real std from guy', np.mean((self.y_control - np.mean(self.y_control)) ** 2) ** 0.5)
-        print('Real std ', np.std(self.y_control))
+        # print('\nRMSE: pred_control', mean_squared_error(self.y_treated, pred_treated)**0.5)
+        # #print('Real std from guy', np.mean((self.y_treated - np.mean(self.y_treated))**2)**0.5)
+        # print('Real std ', np.std(self.y_treated))
+        #
+        # print('\nRMSE: pred_control', mean_squared_error(self.y_control, pred_control) ** 0.5)
+        # #print('Real std from guy', np.mean((self.y_control - np.mean(self.y_control)) ** 2) ** 0.5)
+        # print('Real std ', np.std(self.y_control))
 
         return np.mean(treated_model.predict(self.X) - control_model.predict(self.X))
 
