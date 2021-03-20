@@ -581,12 +581,12 @@ class AverageTreatmentEstimator:
     def matching_ate(self):
         # model_control = KNeighborsRegressor(algorithm='brute', metric='mahalanobis', n_neighbors=1)
         # model_treatment = KNeighborsRegressor(algorithm='brute', metric='mahalanobis', n_neighbors=1)
-        model_control = KNeighborsRegressor(algorithm = 'brute',
-                                            metric = 'mahalanobis',
-                                            metric_params = {'VI': np.cov(self.X)}, n_neighbors=5)
-        model_treatment = KNeighborsRegressor(algorithm = 'brute',
-                                              metric = 'mahalanobis',
-                                              metric_params = {'VI': np.cov(self.X)}, n_neighbors=1)
+        model_control = KNeighborsRegressor(algorithm='brute',
+                                            metric='mahalanobis',
+                                            metric_params={'VI': np.cov(self.X_treated)}, n_neighbors=3)
+        model_treatment = KNeighborsRegressor(algorithm='brute',
+                                              metric='mahalanobis',
+                                              metric_params={'VI': np.cov(self.X_control)}, n_neighbors=3)
         # model_control = KNeighborsRegressor(algorithm='auto', metric='euclidean', n_neighbors=1)
         # model_treatment = KNeighborsRegressor(algorithm='auto', metric='euclidean', n_neighbors=1)
 
