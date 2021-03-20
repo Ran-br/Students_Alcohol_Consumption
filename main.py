@@ -4,7 +4,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.gaussian_process import GaussianProcessRegressor
-from sklearn.gaussian_process.kernels import RBF, ConstantKernel
+from sklearn.gaussian_process.kernels import RBF, ConstantKernel, ExpSineSquared, WhiteKernel
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.linear_model import LinearRegression, LogisticRegression, TweedieRegressor
@@ -535,8 +535,12 @@ class AverageTreatmentEstimator:
         return np.mean(y_predict_treated - y_predict_not_treated)
 
     def t_learner_ate(self):
-        treated_model = GaussianProcessRegressor()
-        control_model = GaussianProcessRegressor()
+        # treated_model = GaussianProcessRegressor()
+        # control_model = GaussianProcessRegressor()
+
+        gp_kernel = ExpSineSquared(1e10, 5.0, periodicity_bounds=(1e-2, 1e1))
+        treated_model = TweedieRegressor(power=1.9, alpha=1e10, max_iter=10000)
+        control_model = TweedieRegressor(power=1.9, alpha=1e10, max_iter=10000)
         # treated_model = Ridge(alpha=1e10)
         # control_model = Ridge(alpha=1e10)
 
@@ -638,8 +642,8 @@ class AverageTreatmentEstimator:
     # Use doubly robust estimator to try and decrease the possible error of estimation
     def doubly_robust(self):
         ps = self.propensity_score(self.X)
-        mu0 = Ridge(alpha=1e-10).fit(self.X_control, self.y_control).predict(self.X)
-        mu1 = GaussianProcessRegressor().fit(self.X_treated, self.y_treated).predict(self.X)
+        mu0 = TweedieRegressor(power=1, alpha=1e10, max_iter=10000).fit(self.X_control, self.y_control).predict(self.X)
+        mu1 = TweedieRegressor(power=1, alpha=1e10, max_iter=10000).fit(self.X_treated, self.y_treated).predict(self.X)
 
         control_model = GaussianProcessRegressor()
         control_model.fit(self.X_control, self.y_control)
@@ -654,16 +658,18 @@ class AverageTreatmentEstimator:
         g0 = mu0 + ((1 - self.T) / (1 - ps)) * (self.y - mu0)
 
         return np.mean(g1 - g0)
-        return (np.mean(self.T * (self.y - mu1) / ps + mu1) -
-                np.mean((1 - self.T) * (self.y - mu0) / (1 - ps) + mu0))
+        # return (np.mean(self.T * (self.y - mu1) / ps + mu1) -
+        #         np.mean((1 - self.T) * (self.y - mu0) / (1 - ps) + mu0))
 
     def return_all_att(self):
         att = [self.ipw_att(), self.s_learner_att(), self.t_learner_ate(), self.matching_att(), self.doubly_robust()]
         return att + [np.average(att)]
 
     def return_all_ate(self):
-        att = [self.ipw_ate(), self.s_learner_ate(), self.t_learner_ate(), self.matching_ate(), self.doubly_robust()]
-        return att + [np.average(att)]
+        ate = [self.ipw_ate(), self.s_learner_ate(), self.t_learner_ate(), self.matching_ate(), self.doubly_robust()]
+        #ate_3_methods = [self.ipw_ate(), self.s_learner_ate(), self.matching_ate()]
+        #return ate + [np.average(ate_3_methods), np.std(ate_3_methods)]
+        return ate + [np.average(ate), np.std(ate)]
 
     def print_histogram(self, col_idx):
         treat_plt = plt.hist(self.X_treated[:, col_idx], bins=20, label='Treated')
@@ -752,10 +758,10 @@ def main():
     att3 = estimator3.return_all_ate()
     #att4 = estimator4.return_all_ate()
 
-    methods = ['IPW', 'S_Learner', 'T_Learner', 'Matching', 'Doubly Robust', 'Average']
+    methods = ['IPW', 'S_Learner', 'T_Learner', 'Matching', 'Doubly Robust', 'Average', 'STD']
     att_df = pd.DataFrame(zip(methods, att1, att2, att3), columns=['Type', 'mat', 'por', 'combined'])
     #att_df = pd.DataFrame(zip(range(1, 8, 1), att1, att2, att3, att4), columns=['Type', 'mat', 'por', 'combined', 'no_dupe'])
-    print(att_df.to_string())
+    print(att_df.to_string(float_format=lambda x: '%.3f' % x))
     # att_df.to_csv('ATT_results.csv', index=False)
     #
     # propensity_df = pd.DataFrame(data=[estimator1.all_propensity_score, estimator2.all_propensity_score],
